@@ -1731,26 +1731,11 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 12,
+   "execution_count": null,
    "id": "8b4dfc66-d352-4b8a-865a-c3b390410ae5",
    "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Collecting git+git://****@github.com/Giovita/xray-exam-diagnosis-cnn.git\n",
-      "  Cloning git://****@github.com/Giovita/xray-exam-diagnosis-cnn.git to /tmp/pip-req-build-dlyjxwlx\n",
-      "  Running command git clone --filter=blob:none -q 'git://****@github.com/Giovita/xray-exam-diagnosis-cnn.git' /tmp/pip-req-build-dlyjxwlx\n",
-      "  fatal: unable to look up git@github.com (port 9418) (Name or service not known)\n",
-      "\u001b[33mWARNING: Discarding git+git://****@github.com/Giovita/xray-exam-diagnosis-cnn.git. Command errored out with exit status 128: git clone --filter=blob:none -q 'git://****@github.com/Giovita/xray-exam-diagnosis-cnn.git' /tmp/pip-req-build-dlyjxwlx Check the logs for full command output.\u001b[0m\n",
-      "\u001b[31mERROR: Command errored out with exit status 128: git clone --filter=blob:none -q 'git://****@github.com/Giovita/xray-exam-diagnosis-cnn.git' /tmp/pip-req-build-dlyjxwlx Check the logs for full command output.\u001b[0m\n"
-     ]
-    }
-   ],
-   "source": [
-    "! pip install git+git://git@github.com/Giovita/xray-exam-diagnosis-cnn.git"
-   ]
+   "outputs": [],
+   "source": []
   }
  ],
  "metadata": {
