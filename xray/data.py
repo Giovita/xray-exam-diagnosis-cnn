@@ -59,7 +59,7 @@ def get_data(
 
 
 
-def filter_datraset_from_list(dataset: pd.DataFrame, filter_list: list,
+def filter_dataset_from_list(dataset: pd.DataFrame, filter_list: list,
                               filter_by_col: str):
     """
     Return a test/train dataset split from the given index list.
@@ -106,8 +106,6 @@ def split_df(dataset: pd.DataFrame, column_to_filter, split: float = 0.85, total
 
     return y_train, y_val
 
-def reduce_dataset():
-    pass
 
 if __name__ == '__main__':
     import os
