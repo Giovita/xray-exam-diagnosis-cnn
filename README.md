@@ -72,3 +72,14 @@ mkdir tmp
 cd tmp
 xray-exam-diagnosis-cnn-run
 ```
+
+
+## Creators
+**Jhon Poma**
+jhon.poma@unmsm.edu.pe
+
+**Santiago Giovagnoli**
+santigiova@gmail.com
+
+**Santiago "Tiago" Restrepo**
+tiago.restrepoe@gmail.com
