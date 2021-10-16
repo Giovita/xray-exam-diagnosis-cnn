@@ -36,6 +36,7 @@ from tensorflow.keras.callbacks import (
     ReduceLROnPlateau,
 )
 from tensorflow.keras.metrics import Precision, Recall, Accuracy
+<<<<<<< HEAD
 
 
 # Load Data, Encoding y Unificar clases iguales
@@ -91,6 +92,8 @@ def load_and_process(data_folder, archivo, cols):
     xray_df.to_csv("xray_df.csv", index=False)
 
     return xray_df
+=======
+>>>>>>> 51d9592 (Refactor Data Pipeline, move  to data.py)
 
 
 # aca debe llamar otra funcion que genera el path para cada imagen
