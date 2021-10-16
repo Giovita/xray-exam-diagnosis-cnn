@@ -205,7 +205,7 @@ def build_generator(
         shuffle = True
 
     generator = datagen.flow_from_dataframe(
-        dataframe=y,
+        dataframe=labels_df,
         directory=img_path,
         x_col=index_col,
         y_col=labels_col,
