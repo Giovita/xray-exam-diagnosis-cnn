@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-=======
 """
 EDIT FOR USE IN XRAY PROJECT! defaults from challenge in place.
 """
 
->>>>>>> 51d9592 (Refactor Data Pipeline, move  to data.py)
 ### MLFLOW configuration - - - - - - - - - - - - - - - - - - -
 
 MLFLOW_URI = "https://mlflow.lewagon.co/"

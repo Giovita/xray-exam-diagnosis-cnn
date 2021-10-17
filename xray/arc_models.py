@@ -36,64 +36,6 @@ from tensorflow.keras.callbacks import (
     ReduceLROnPlateau,
 )
 from tensorflow.keras.metrics import Precision, Recall, Accuracy
-<<<<<<< HEAD
-
-
-# Load Data, Encoding y Unificar clases iguales
-def load_and_process(data_folder, archivo, cols):
-
-    # lectura del dataframe
-    xray_df = pd.read_csv(data_folder + archivo)
-
-    # Generacion columna conteo de enfermedades por imagen
-    xray_df["count_diseases"] = xray_df["Finding Labels"].map(
-        lambda x: len(x.split("|"))
-    )
-    xray_df["Count_diseases"] = np.where(
-        xray_df["Finding Labels"] == "No Finding", 0, xray_df["count_diseases"]
-    )
-
-    # eliminar columna count_diseases
-    xray_df.drop(columns="count_diseases", inplace=True)
-
-    # Generacion columna enfermo/no_enfermo --> True es enfermo - False es No enfermo
-    xray_df["Enfermo"] = np.where(
-        xray_df["Count_diseases"] == 0, "False", "True"
-    )  # se utiliza en string por keras
-
-    # Multiple encoding de las clases
-    all_labels = np.unique(
-        list(chain(*xray_df["Finding Labels"].map(lambda x: x.split("|")).tolist()))
-    )
-    all_labels = [x for x in all_labels if len(x) > 0]
-
-    for c_label in all_labels:
-        if len(c_label) > 1:
-            xray_df[c_label] = xray_df["Finding Labels"].map(
-                lambda finding: 1.0 if c_label in finding else 0
-            )
-
-    # Unficar clases --> ejemplo: (Infiltration|Effusion') y (Effusion|Infiltration')
-    # cambiar de float a integer
-    xray_df[cols] = xray_df[cols].applymap(np.int64)
-
-    xray_df["Combined"] = xray_df[cols].values.tolist()
-    xray_df["Fixed_Labels"] = xray_df["Combined"].apply(
-        lambda x: "|".join([cols[i] for i, val in enumerate(x) if val == 1])
-    )
-
-    # borrar Finding Labels (ya existe el reemplazo), borrar la columna combined (no sirve)
-    xray_df.drop(columns=["Combined", "Finding Labels"], inplace=True)
-
-    # eliminar pacientes sin sentido
-    index_mayor100 = list(xray_df[xray_df["Patient Age"] > 100].index)
-    xray_df = xray_df.drop(index_mayor100)
-
-    xray_df.to_csv("xray_df.csv", index=False)
-
-    return xray_df
-=======
->>>>>>> 51d9592 (Refactor Data Pipeline, move  to data.py)
 
 
 # aca debe llamar otra funcion que genera el path para cada imagen
@@ -211,11 +153,13 @@ if __name__ == "__main__":
         "Pneumothorax",
     ]
 
-    xray_df = load_and_process(data_folder, archivo, cols)
 
-    #  Size
-    img_size = (128, 128)
-    input_shape = img_size + (3,)
+#### Legacy Code
+    # xray_df = load_and_process(data_folder, archivo, cols)
 
-    #  epocas
-    epochs = 30
+    # #  Size
+    # img_size = (128, 128)
+    # input_shape = img_size + (3,)
+
+    # #  epocas
+    # epochs = 30
