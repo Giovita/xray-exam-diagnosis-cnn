@@ -16,7 +16,7 @@ from itertools import chain
 
 # from sklearn.metrics import f1_score
 # from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications.vgg16 import VGG16
+from tensorflow.keras.applications import VGG16, ResNet50, Xception, InceptionV3
 from tensorflow.keras.models import Sequential #, Model
 from tensorflow.keras.layers import (
     # GlobalAveragePooling2D,
@@ -45,7 +45,7 @@ from datetime import datetime
 
 class Trainer():
     """
-    Implements methods needed for training a CNN, including stor
+    Implements methods needed for training a CNN.
     """
 
     def __init__(self, gen_train, gen_val, category_type):
@@ -59,6 +59,13 @@ class Trainer():
         self.gen_val = gen_val
         self.category_type = category_type
         self.experiment_name = EXPERIMENT_NAME
+
+        self.TRANSFER_CNN = {
+        'densenet': VGG16,
+        'ResNet50': ResNet50,
+        'Xception': Xception,
+        'InceptionV3': InceptionV3
+    }
 
     def set_experiment_name(self, experiment_name):
         '''defines the experiment name for MLFlow'''
@@ -74,11 +81,10 @@ class Trainer():
             output_shape,
             dense_layer_geometry: tuple,
             output_activation=None,
-            transfer_model=VGG16,
+            transfer_model='VGG16',
             dense_layer_activation="relu",
             dropout_layers=True,
             dropout_rate=0.2,
-            first_units=512,  # drop in refactor
 
     ):
         """
@@ -95,22 +101,16 @@ class Trainer():
         - first_units: architecture of first hidden dense layer. DEPRECATED
         """
 
-        # if len(input_shape) == 2:
-        #     input_shape += (3,)
-
         # Transfer Learning Import
-        vgg_model = transfer_model(include_top=False,
+        base_model = self.TRANSFER_CNN.get(transfer_model)(include_top=False,
                             weights="imagenet",
                             input_shape=input_shape)
-        vgg_model.trainable = False
+        base_model.trainable = False
 
-        # Params for dense_layers architecture  -- DEPRECATED for tuple_sintax
-        second_unit = first_units / 2
-        third_unit = second_unit / 2
 
         # Build final layers
         model = Sequential()
-        model.add(vgg_model)
+        model.add(base_model)
         model.add(Flatten())
 
         for neurons in dense_layer_geometry:
@@ -172,7 +172,6 @@ class Trainer():
                               loss=loss,
                               metrics=metrics)
 
-
     def fit_model(self,
                   callback=None,
                   patience=10,
@@ -223,6 +222,11 @@ class Trainer():
             model_dir = os.path.join(os.path.join(os.getcwd(),
                                               'models', self.experiment_name))
 
+
+    def add_base_model(self, model_name: str, model):
+        """Add a new tf.keras.application base model into the class. """
+
+        self.TRANSFER_CNN[model_name] = model
 
 # trainer should be instanciated with everything inherent to the model:
 # parameters set in its methods, may update atributes, that default with None when
