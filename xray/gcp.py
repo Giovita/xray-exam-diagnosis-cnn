@@ -2,17 +2,23 @@ import os
 
 from google.cloud import storage
 from termcolor import colored
-from xray.params import BUCKET_NAME, MODEL_NAME, MODEL_VERSION
+from xray.params import BUCKET_NAME, GCP_STORAGE_LOCATION
 
 
-def storage_upload(rm=False):
+def storage_upload(model_name,
+                   base_model,
+                   version,
+                   rm=False,
+                   ):
     client = storage.Client().bucket(BUCKET_NAME)
 
-    local_model_name = 'model.joblib'
-    storage_location = f"models/{MODEL_NAME}/{MODEL_VERSION}/{local_model_name}"
+    local_model_name = f'{model_name}'
+    storage_location = f"models/{base_model}/{version}/{local_model_name}"
     blob = client.blob(storage_location)
-    blob.upload_from_filename('model.joblib')
-    print(colored(f"=> model.joblib uploaded to bucket {BUCKET_NAME} inside {storage_location}",
-                  "green"))
+    blob.upload_from_filename(local_model_name)
+    print(
+        colored(
+            f"=> {local_model_name} uploaded to bucket {BUCKET_NAME} inside {storage_location}",
+            "green"))
     if rm:
-        os.remove('model.joblib')
+        os.remove(local_model_name)

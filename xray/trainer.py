@@ -1,56 +1,54 @@
-import numpy as np
-import pandas as pd
 import os
-from glob import glob
+from datetime import datetime
 
-import matplotlib.pyplot as plt
-from itertools import chain
-
-# import tensorflow
-
-# import tensorflow.keras
-# import sklearn
-# import sklearn as sk
-
-# from sklearn.model_selection import train_test_split
-
-# from sklearn.metrics import f1_score
-# from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.applications import VGG16, DenseNet121,  ResNet50, Xception, InceptionV3
-from tensorflow.keras.models import Sequential #, Model
+from tensorflow.keras.applications import (
+    VGG16,
+    DenseNet121,
+    ResNet50,
+    Xception,
+    InceptionV3,
+)
+from tensorflow.keras.models import Sequential  # , Model
 from tensorflow.keras.layers import (
-    # GlobalAveragePooling2D,
     Dense,
     Dropout,
     Flatten,
-    # Conv2D,
-    # MaxPooling2D,
 )
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import (
     ModelCheckpoint,
-    # LearningRateScheduler,
     EarlyStopping,
     ReduceLROnPlateau,
 )
-from tensorflow.keras.metrics import Accuracy, Precision, Recall, CategoricalAccuracy
+from tensorflow.keras.metrics import (
+    Accuracy,
+    Precision,
+    Recall,
+    CategoricalAccuracy,
+    AUC,
+)
+import PIL.Image
 from tensorflow import image
 
-
-import PIL.Image
-
-from memoized_property import memoized_property
 import mlflow
 from mlflow.tracking import MlflowClient
+from memoized_property import memoized_property
 
-from xray.params import (MLFLOW_URI,
-                        EXPERIMENT_NAME,
-                        BUCKET_NAME,
-                        MODEL_VERSION)
+from xray.params import (
+    GCP_MODEL_STORAGE_LOCATION,
+    BUCKET_NAME,
+    MLFLOW_URI,
+    EXPERIMENT_NAME,
+    GCP_IMAGE_BUCKET,
+    MODEL_VERSION,
+    GCP_MODEL_BUCKET,
+    PATH_TO_LOCAL_MODEL,
+)
 
-from datetime import datetime
+from google.cloud import storage
 
-class Trainer():
+
+class Trainer:
     """
     Implements methods needed for training a CNN.
     """
@@ -70,11 +68,11 @@ class Trainer():
         self.experiment_name = EXPERIMENT_NAME
 
         self.TRANSFER_CNN = {
-        'VGG16': VGG16(),
-        'densenet': DenseNet121,
-        'ResNet50': ResNet50,
-        'Xception': Xception,
-        'InceptionV3': InceptionV3
+            "VGG16": VGG16(),
+            "densenet": DenseNet121,
+            "ResNet50": ResNet50,
+            "Xception": Xception,
+            "InceptionV3": InceptionV3,
         }
 
         ## Compile attributes: modified at model compile
@@ -84,8 +82,12 @@ class Trainer():
         self.input_shape = None
         self.dense_layer_geom = None
 
+        # Data loading and saving attrs
+        self.filename = None  # Compile when save_model
+        self.model_dir = None  # Relative route from root to model
+
     def set_experiment_name(self, experiment_name):
-        '''defines the experiment name for MLFlow'''
+        """defines the experiment name for MLFlow"""
         self.experiment_name = experiment_name
 
     def set_pipeline(self):
@@ -93,16 +95,15 @@ class Trainer():
         pass
 
     def build_cnn(
-            self,  # Provides train and val generators
-            input_shape,
-            output_shape,
-            dense_layer_geometry: tuple,
-            output_activation=None,
-            transfer_model=VGG16,
-            dense_layer_activation="relu",
-            dropout_layers=True,
-            dropout_rate=0.2,
-
+        self,  # Provides train and val generators
+        input_shape,
+        output_shape,
+        dense_layer_geometry: tuple,
+        output_activation=None,
+        transfer_model=VGG16,
+        dense_layer_activation="relu",
+        dropout_layers=True,
+        dropout_rate=0.2,
     ):
         """
         params:
@@ -127,11 +128,10 @@ class Trainer():
         else:
             self.input_shape = input_shape
 
-        base_model = VGG16(include_top=False,
-                            weights="imagenet",
-                            input_shape=self.input_shape)
+        base_model = VGG16(
+            include_top=False, weights="imagenet", input_shape=self.input_shape
+        )
         base_model.trainable = False
-
 
         # Build final layers
         model = Sequential()
@@ -146,12 +146,13 @@ class Trainer():
         self.dense_layer_num = len(dense_layer_geometry)
         self.dense_layer_geom = dense_layer_geometry
 
-        output_activ_dict = {'binary': 'sigmoid',
-                             'multicategorical': 'softmax',
-                             'multilabel': 'sigmoid'}
+        output_activ_dict = {
+            "binary": "sigmoid",
+            "multicategorical": "softmax",
+            "multilabel": "sigmoid",
+        }
 
-
-        if not output_activation and self.category_type == 'binary':
+        if not output_activation and self.category_type == "binary":
             output_activation = output_activ_dict.get(self.category_type)
         else:
             if output_activation != output_activ_dict.get(self.category_type):
@@ -163,22 +164,12 @@ class Trainer():
 
         self.pipeline = model
 
-        # return model
-        # # model.add(Dropout(dropout_rate))  # Drop because unnecesary
-        # model.add(Dense(first_units, activation=dense_layers_activation))
-        # model.add(Dropout(dropout_rate))
-        # model.add(Dense(second_unit, activation=dense_layers_activation))
-        # model.add(Dropout(dropout_rate))
-        # model.add(Dense(third_unit, activation=dense_layers_activation))
-        # model.add(Dense(output_unit, activation=output_activation))
-        # Metricas y optimizador
-
-    def compile_model(self,
-            loss=None,
-            learning_rate=1e-4,  # Default smaller than tf.keras def for Transfer L.
-            metrics=None
-            ):
-
+    def compile_model(
+        self,
+        loss=None,
+        learning_rate=1e-4,  # Default smaller than tf.keras def for Transfer L.
+        metrics=None,
+    ):
         """
         Compile model with given params.
         If loss and metrics are not provided,
@@ -187,51 +178,53 @@ class Trainer():
         optimizer = Adam(learning_rate=learning_rate)
 
         if not metrics:
-            if self.category_type == 'binary':
+            if self.category_type == "binary":
                 metrics = [Accuracy(), Precision(), Recall()]
             else:
                 metrics = [Accuracy(), Precision(), Recall(), CategoricalAccuracy()]
 
         if not loss:
-            loss_dict = {'binary': 'binary_crossentropy',
-                    'multicategorical': 'multicategory_crossentropy',
-                    'multilabel': 'binary_crossentropy'}
+            loss_dict = {
+                "binary": "binary_crossentropy",
+                "multicategorical": "multicategory_crossentropy",
+                "multilabel": "binary_crossentropy",
+            }
             loss = loss_dict[self.category_type]
 
-        self.pipeline.compile(optimizer=optimizer,
-                              loss=loss,
-                              metrics=metrics)
+        self.pipeline.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
-        self.set_experiment_name(f"{EXPERIMENT_NAME}_{self.pipeline.layers[0].name}_\
-                                        {f'{datetime.now()}'.replace(' ', '_')}"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                )
+        self.set_experiment_name(
+            f"{EXPERIMENT_NAME}_{self.pipeline.layers[0].name}_\
+                                        {f'{datetime.now()}'.replace(' ', '_')}"
+        )
 
-
-        params = [
-            'base_arch', 'dense_layer_num', 'output_activation',
-            'input_shape', 'dense_layer_geom'
+        params_key = [
+            "base_arch",
+            "dense_layer_num",
+            "output_activation",
+            "input_shape",
+            "dense_layer_geom",
         ]
 
-        value = [
-            self.base_arch, self.dense_layer_num, self.output_activation,
-            self.input_shape, self.dense_layer_geom
+        params_value = [
+            self.base_arch,
+            self.dense_layer_num,
+            self.output_activation,
+            self.input_shape,
+            self.dense_layer_geom,
         ]
 
-        self.mlflow_log_param('base_arch', self.pipeline.layers[0].name)
+        self.mlflow_log_param(params_key, params_value)
 
+    def fit_model(self, callback=None, patience=10, epochs=20):
 
-    def fit_model(self,
-                  callback=None,
-                  patience=10,
-                  epochs=20 ):
+        es = EarlyStopping(
+            monitor="val_loss", mode="min", patience=patience, restore_best_weights=True
+        )
 
-        es = EarlyStopping(monitor="val_loss",
-                            mode="min",
-                            patience=patience,
-                            restore_best_weights=True)
-
-        checkpoint = ModelCheckpoint('best_weights.hdf5',
-                        save_best_only=True,
-                        verbose=2)
+        checkpoint = ModelCheckpoint(
+            "best_weights.hdf5", save_best_only=True, verbose=2
+        )
 
         adapt_lr = ReduceLROnPlateau(patience=5, verbose=1)
 
@@ -240,66 +233,71 @@ class Trainer():
         else:
             callbacks_list = callback
 
-        history = self.pipeline.fit(self.gen_train,
-                            validation_data=self.gen_val,
-                            epochs=epochs,
-                            callbacks=callbacks_list)
-
+        history = self.pipeline.fit(
+            self.gen_train,
+            validation_data=self.gen_val,
+            epochs=epochs,
+            callbacks=callbacks_list,
+        )
 
         return history
 
     def run(self):
         self.build_cnn()
         self.compile_model()
-        # self.mlflow_log_param("model", "Linear")
         self.fit_model()
 
-        print('Fitted')
+        print("Fitted")
         # return history
 
     def evaluate_model(self, gen_test, **kwargs):
-        metric_values = self.pipeline.evaluate(gen_test,
-                               workers=4,
-                               use_multiprocessing=True,
-                               **kwargs)
+        metric_values = self.pipeline.evaluate(
+            gen_test, workers=4, use_multiprocessing=True, **kwargs
+        )
 
         metric_key = self.pipeline.metrics_names
 
         self.mlflow_log_metric(metric_key, metric_values)
 
     def predict_xray(self, x):
+        """Predict disease from xray img."""
 
         img = PIL.Image.open(x)
         img = image.resize(img, size=self.input_shape)
         img = image.grayscale_to_rgb(img)
-
         prediction = self.pipeline.predict(img)
 
         return prediction
 
     def add_base_model(self, model_name: str, model):
-        """Add a new tf.keras.application base model into the class. """
+        """Add a new tf.keras.application base model into the class."""
 
         self.TRANSFER_CNN[model_name] = model
 
-### Save and Load utilities
+    ### Save and Load utilities
 
-    def save_locally(self):
+    def save_locally(self, model_folder: str = PATH_TO_LOCAL_MODEL):
         """Save model in tf.keras default model"""
-        if not os.path.join(os.getcwd(), 'models'):
-            os.mkdir('models')
+        if not os.path.join(os.getcwd(), model_folder):
+            os.mkdir(model_folder)
 
-        model_dir = os.path.join(
-            os.path.join(os.getcwd(), 'models', self.experiment_name))
+        self.model_dir = os.path.join(os.path.join(os.getcwd(), model_folder))
+        self.filename = f"{self.experiment_name}.h5"
+        self.pipeline.save(os.path.join(self.model_dir, self.filename))
 
-        self.pipeline.save(f'{model_dir}.h5')
+    def upload_model_to_gcp(self, rm=False):
+        """Upload current model to gcp location"""
+        client = storage.Client().bucket(BUCKET_NAME)
+        blob = client.blob(GCP_MODEL_STORAGE_LOCATION)
+        blob.upload_from_filename(os.path.join(self.model_dir, self.filename))
 
-    # def upload_model_to_gcp():
-    #     """Upload current model to gcp location"""
-    #     client = storage.Client(self)
-    #     bucket = client.bucket(BUCKET_NAME)
-    #     blob = bucket.blob(STORAGE_LOCATION)
-    #     blob.upload_from_filename(f'{model_dir}.h5')
+        print(
+            f"=> {self.filename} uploaded to bucket {BUCKET_NAME} inside {GCP_MODEL_STORAGE_LOCATION}",
+            "green",
+        )
+
+        if rm:
+            os.remove(self.filename)
 
     # MLFlow methods
     @memoized_property
@@ -313,7 +311,8 @@ class Trainer():
             return self.mlflow_client.create_experiment(self.experiment_name)
         except BaseException:
             return self.mlflow_client.get_experiment_by_name(
-                self.experiment_name).experiment_id
+                self.experiment_name
+            ).experiment_id
 
     @memoized_property
     def mlflow_run(self):
@@ -329,8 +328,6 @@ class Trainer():
 # trainer should be instanciated with everything inherent to the model:
 # parameters set in its methods, may update atributes, that default with None when
 # instanciated
-
-
 """
 TODO
 
