@@ -2,7 +2,7 @@ import os
 
 from google.cloud import storage
 from termcolor import colored
-from TaxiFareModel.params import BUCKET_NAME, MODEL_NAME, MODEL_VERSION
+from xray.params import BUCKET_NAME, MODEL_NAME, MODEL_VERSION
 
 
 def storage_upload(rm=False):

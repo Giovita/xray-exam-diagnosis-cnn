@@ -5,7 +5,7 @@ EDIT FOR USE IN XRAY PROJECT! defaults from challenge in place.
 ### MLFLOW configuration - - - - - - - - - - - - - - - - - - -
 
 MLFLOW_URI = "https://mlflow.lewagon.co/"
-EXPERIMENT_NAME = "[AR] [BS AS] [Giovita] taxifaremodel 02"
+EXPERIMENT_NAME = "[AR] [BS AS] [xray-diagnosis]"
 
 ### DATA & MODEL LOCATIONS  - - - - - - - - - - - - - - - - - - -
 
