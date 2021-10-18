@@ -1,53 +1,51 @@
-"""
-EDIT FOR USE IN XRAY PROJECT! defaults from challenge in place.
-"""
+# -----------------
+# GCP Params
+# -----------------
 
-### MLFLOW configuration - - - - - - - - - - - - - - - - - - -
+PROJECT_ID = 'wagon-bootcamp-323816'
+
+BUCKET_NAME = 'xray-lewagon-testupload'
+
+REGION = 'SOUTHAMERICA-EAST1'
+
+BUCKET_TRAIN_DATA_PATH = 'images/'
+
+BUCKET_TRAIN_CSV_PATH = ''
+
+GCP_IMAGE_BUCKET = f"gs://{BUCKET_NAME}/{BUCKET_TRAIN_DATA_PATH}"
+
+GCP_MODEL_STORAGE_LOCATION = 'models/'
+
+GCP_MODEL_BUCKET = f'gs://{BUCKET_NAME}/{GCP_MODEL_STORAGE_LOCATION}'
+
+# -----------------
+# Predict Params
+# -----------------
+
+AWS_BUCKET_TEST_PATH = None
+
+# -----------------
+# MLFlow
+# -----------------
 
 MLFLOW_URI = "https://mlflow.lewagon.co/"
-EXPERIMENT_NAME = "[AR] [BS AS] [Giovita] taxifaremodel 02"
 
-### DATA & MODEL LOCATIONS  - - - - - - - - - - - - - - - - - - -
+EXPERIMENT_NAME = "[AR] [BS AS] [xray-diagnosis]"
 
-PATH_TO_LOCAL_MODEL = 'model.joblib'
+# -----------------
+# Local_storage
+# -----------------
 
-AWS_BUCKET_TEST_PATH = "s3://wagon-public-datasets/taxi-fare-test.csv"
+PATH_TO_LOCAL_MODEL = 'models/'
 
+# -----------------
+# Model Variables
+# -----------------
 
-### GCP configuration - - - - - - - - - - - - - - - - - - -
+"""DEPRECATED. Not to be used. """
 
-# /!\ you should fill these according to your account
+MODEL_NAME = 'xray-diagnosis'
 
-### GCP Project - - - - - - - - - - - - - - - - - - - - - -
+MODEL_VERSION = 'v1'
 
-# not required here
-
-### GCP Storage - - - - - - - - - - - - - - - - - - - - - -
-
-BUCKET_NAME = 'wagon-data-710-giovagnoli'
-
-##### Data  - - - - - - - - - - - - - - - - - - - - - - - -
-
-# train data file location
-# /!\ here you need to decide if you are going to train using the provided and uploaded data/train_1k.csv sample file
-# or if you want to use the full dataset (you need need to upload it first of course)
-BUCKET_TRAIN_DATA_PATH = 'data/train_1k.csv'
-# BUCKET_TRAIN_DATA_PATH_FULL = ' '  # Fill with path to full 5 GB dataset
-
-##### Training  - - - - - - - - - - - - - - - - - - - - - -
-
-# not required here
-
-##### Model - - - - - - - - - - - - - - - - - - - - - - - -
-
-# model folder name (will contain the folders for all trained model versions)
-MODEL_NAME = 'taxifare'
-
-# model version folder name (where the trained model.joblib file will be stored)
-MODEL_VERSION = 'v2'
-
-### GCP AI Platform - - - - - - - - - - - - - - - - - - - -
-
-# not required here
-
-### - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PATH_TO_GCP_MODEL = f'gs://{BUCKET_NAME}/models/{MODEL_NAME}/{PATH_TO_LOCAL_MODEL}'
