@@ -11,7 +11,6 @@ def get_paths(
     verbose = 0,
     overwrite_path=False
     ):
-
     """
     Creates column with paths from DF, according to file name (Image Index)
     and home folder in 'data_folder'.
