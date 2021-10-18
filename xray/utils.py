@@ -11,6 +11,13 @@ def get_paths(
     verbose = 0,
     ):
 
+    """
+    Creates column with paths from DF, according to file name (Image Index)
+    and home folder in 'data_folder'.
+    - dataframe: df to modify
+    - data_folder: root dir to search images
+    """
+
     all_image_paths = {os.path.basename(x): x for x in glob(
                 os.path.join(data_folder, '**/*.png'), recursive=True)}
 

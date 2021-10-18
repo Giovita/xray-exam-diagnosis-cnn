@@ -152,7 +152,7 @@ class Trainer:
             "multilabel": "sigmoid",
         }
 
-        if not output_activation and self.category_type == "binary":
+        if not output_activation:  # and self.category_type == "binary":
             output_activation = output_activ_dict.get(self.category_type)
         else:
             if output_activation != output_activ_dict.get(self.category_type):
@@ -169,10 +169,12 @@ class Trainer:
         loss=None,
         learning_rate=1e-4,  # Default smaller than tf.keras def for Transfer L.
         metrics=None,
+        **kwargs,
     ):
         """
         Compile model with given params.
-        If loss and metrics are not provided,
+        If loss and metrics are not provided, default values depending on type of
+        predictor are used
         """
 
         optimizer = Adam(learning_rate=learning_rate)
@@ -191,32 +193,34 @@ class Trainer:
             }
             loss = loss_dict[self.category_type]
 
-        self.pipeline.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+        self.pipeline.compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
 
         self.set_experiment_name(
             f"{EXPERIMENT_NAME}_{self.pipeline.layers[0].name}_\
                                         {f'{datetime.now()}'.replace(' ', '_')}"
         )
 
-        params_key = [
-            "base_arch",
-            "dense_layer_num",
-            "output_activation",
-            "input_shape",
-            "dense_layer_geom",
-        ]
+        params = {
+            "base_arch": self.base_arch,
+            "dense_layer_num": self.dense_layer_num,
+            "output_activation": self.output_activation,
+            "input_shape": self.input_shape,
+            "dense_layer_geom": self.dense_layer_geom,
+        }
 
-        params_value = [
-            self.base_arch,
-            self.dense_layer_num,
-            self.output_activation,
-            self.input_shape,
-            self.dense_layer_geom,
-        ]
+        # params_value = [
+        #     self.base_arch,
+        #     self.dense_layer_num,
+        #     self.output_activation,
+        #     self.input_shape,
+        #     self.dense_layer_geom,
+        # ]
+        for k, v in params.items():
+            self.mlflow_log_param(k, v)
 
-        self.mlflow_log_param(params_key, params_value)
-
-    def fit_model(self, callback=None, patience=10, epochs=20):
+    def fit_model(
+        self, callback=None, patience=10, epochs=20, steps_per_epoch=None, **kwargs
+    ):
 
         es = EarlyStopping(
             monitor="val_loss", mode="min", patience=patience, restore_best_weights=True
@@ -238,6 +242,8 @@ class Trainer:
             validation_data=self.gen_val,
             epochs=epochs,
             callbacks=callbacks_list,
+            steps_per_epoch=steps_per_epoch,
+            **kwargs,
         )
 
         return history
