@@ -9,7 +9,18 @@ def get_paths(
     return_path_col=True,
     return_relative=False,
     verbose = 0,
+    overwrite_path=False
     ):
+    """
+    Creates column with paths from DF, according to file name (Image Index)
+    and home folder in 'data_folder'.
+    - dataframe: df to modify
+    - data_folder: root dir to search images
+    """
+
+    if 'path' in dataframe.columns and not overwrite_path:
+        print("'Path' column already exists")
+        return
 
     """
     Creates column with paths from DF, according to file name (Image Index)
