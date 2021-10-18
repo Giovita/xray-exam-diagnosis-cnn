@@ -1,11 +1,13 @@
+from google.cloud.storage import bucket
 import numpy as np
 import pandas as pd
+import os
 from itertools import chain
 
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from google.cloud import storage
 
-from xray.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH
+from xray.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, BUCKET_TRAIN_CSV_PATH
 
 
 def get_data(labels_file: str, source = 'csv'):
@@ -110,7 +112,7 @@ def split_df(
     train_val_test: tuple = None,
     split: float = 0.85,
     total_filter=0.1,
-):
+    ):
     """
     Reduce total dataset according to 'total_filter'
     Randomly split a df, by a given column in a `split` split.
@@ -217,6 +219,15 @@ def build_generator(
     )
 
     return generator
+
+
+def get_data_from_gcp(filename: str, optimize=False, **kwargs):
+    """method to get the training data (or a portion of it) from google cloud bucket"""
+    client = storage.Client()
+    # path = fr"gs://{BUCKET_NAME}/{BUCKET_TRAIN_CSV_PATH}/{filename}"
+    path = os.path.join('gs://',BUCKET_NAME, BUCKET_TRAIN_CSV_PATH, filename)
+    df = pd.read_csv(path)
+    return df
 
 
 if __name__ == "__main__":
