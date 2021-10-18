@@ -123,6 +123,9 @@ def split_df(
     Execution notice: Being split by Patient ID, the final dataset will not have
     precisely train_val_test
     """
+
+    assert sum(train_val_test) == 1, 'train-val-test split must add up to 1'
+
     if not column_to_filter_by:
         patients = dataset
     else:

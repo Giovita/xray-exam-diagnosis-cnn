@@ -9,7 +9,12 @@ def get_paths(
     return_path_col=True,
     return_relative=False,
     verbose = 0,
+    overwrite_path=False
     ):
+
+    if 'path' in dataframe.columns and not overwrite_path:
+        print("'Path' column already exists")
+        return
 
     all_image_paths = {os.path.basename(x): x for x in glob(
                 os.path.join(data_folder, '**/*.png'), recursive=True)}

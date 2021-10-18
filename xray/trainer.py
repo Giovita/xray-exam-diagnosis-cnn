@@ -240,15 +240,17 @@ class Trainer:
             callbacks=callbacks_list,
         )
 
+        self.mlflow_log_metric(history.history.keys(), history.history.values())
+
         return history
 
     def run(self):
         self.build_cnn()
         self.compile_model()
-        self.fit_model()
+        history = self.fit_model()
 
         print("Fitted")
-        # return history
+        return history
 
     def evaluate_model(self, gen_test, **kwargs):
         metric_values = self.pipeline.evaluate(
