@@ -21,9 +21,7 @@ clean:
 	@rm -f */version.txt
 	@rm -f .coverage
 	@rm -fr */__pycache__ */*.pyc __pycache__
-	@rm -fr build dist
-	@rm -fr xray-exam-diagnosis-cnn-*.dist-info
-	@rm -fr xray-exam-diagnosis-cnn.egg-info
+	@rm -fr build dist *.dist-info *.egg-info
 
 install:
 	@pip install . -U
@@ -61,13 +59,13 @@ pypi:
 ##### GCP Commands  - - - - - - - - - - - - - - - - - - - -
 
 # path of the file to upload to gcp (the path of the file should be absolute or should match the directory where the make command is run)
-LOCAL_PATH=PATH_TO_FILE_train_1k.csv
+# LOCAL_PATH=PATH_TO_FILE_train_1k.csv
 
 # project id
-PROJECT_ID=wagon-bootcamp-323816
+PROJECT_ID=xray - cnn - 329114
 
 # bucket name
-BUCKET_NAME=xray-lewagon-testupload
+BUCKET_NAME=images-xray-lewagon
 
 # bucket directory in which to store the uploaded file (we choose to name this data as a convention)
 BUCKET_FOLDER=data
@@ -120,12 +118,6 @@ gcp_submit_training:
 		--region ${REGION} \
 		--stream-logs
 
-clean:
-	@rm -f */version.txt
-	@rm -f .coverage
-	@rm -fr */__pycache__ __pycache__
-	@rm -fr build dist *.dist-info *.egg-info
-	@rm -fr */*.pyc
 
 # ----------------------------------
 #      Prediction API

@@ -1,14 +1,18 @@
+# -*- coding: utf-8 -*-
+
 # -----------------
 # GCP Params
 # -----------------
 
-PROJECT_ID = 'wagon-bootcamp-323816'
+# PROJECT_ID = 'wagon-bootcamp-323816'  # Test for Santiago
 
-BUCKET_NAME = 'xray-lewagon-testupload'
+PROJECT_ID ='xray - cnn - 329114'
+
+BUCKET_NAME ='images-xray-lewagon'  # 'xray-lewagon-testupload'
 
 REGION = 'SOUTHAMERICA-EAST1'
 
-BUCKET_TRAIN_DATA_PATH = 'images/'
+BUCKET_TRAIN_DATA_PATH = '' #'images/'  Changed for testing
 
 BUCKET_TRAIN_CSV_PATH = ''
 
