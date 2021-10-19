@@ -163,7 +163,6 @@ class Trainer:
         self.pipeline = model
         self.model_dir = f"{self.pipeline.layers[0].name}/{self.category_type}/"
 
-
     def compile_model(
         self,
         loss=None,
@@ -199,10 +198,13 @@ class Trainer:
             }
             loss = loss_dict[self.category_type]
 
-        self.pipeline.compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
+        self.pipeline.compile(optimizer=optimizer,
+                              loss=loss,
+                              metrics=metrics,
+                              **kwargs)
 
         self.set_experiment_name(
-            f"{EXPERIMENT_NAME}_{self.pipeline.layers[0].name}_\
+            f"{EXPERIMENT_NAME}_{self.base_arch}_\
                                         {f'{datetime.now()}'.replace(' ', '_')}"
         )
 
@@ -221,6 +223,7 @@ class Trainer:
         #     self.input_shape,
         #     self.dense_layer_geom,
         # ]
+
         for k, v in params.items():
             self.mlflow_log_param(k, v)
 
@@ -268,7 +271,9 @@ class Trainer:
             **kwargs,
         )
 
-        self.mlflow_log_metric(history.history.keys(), history.history.values())
+        # self.mlflow_log_metric(history.history.keys(), history.history.values())
+
+        print(history.history)
 
         return history
 
@@ -341,7 +346,7 @@ class Trainer:
 
         # saving the trained model to disk is mandatory to then beeing able to upload it to storage
         # Implement here
-        self.save_locallly()
+        self.save_locally()
         print("saved model locally")
 
         # Implement here
