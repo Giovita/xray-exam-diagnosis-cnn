@@ -95,6 +95,8 @@ PYTHON_VERSION=3.7
 FRAMEWORK=TensorFlow
 RUNTIME_VERSION=2.5
 
+MACHINE_TYPE=n1-standard-16
+
 ##### Package params  - - - - - - - - - - - - - - - - - - -
 
 PACKAGE_NAME=xray
@@ -116,6 +118,8 @@ gcp_submit_training:
 		--python-version=${PYTHON_VERSION} \
 		--runtime-version=${RUNTIME_VERSION} \
 		--region ${REGION} \
+    --scale-tier BASIC_GPU \
+    # --master-machine-type ${MACHINE_TYPE}
 		--stream-logs
 
 
