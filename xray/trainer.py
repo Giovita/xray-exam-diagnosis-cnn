@@ -87,9 +87,7 @@ class Trainer:
         self.model_dir = os.path.join(
             BASE_MODEL_FOLDER, self.category_type
         )  # Relative route from root to model
-        self.checkpoint_path = os.path.join(
-            self.model_dir, self.filename.split("."[-2])
-        )  # File for
+        self.checkpoint_path = None
         self.experiment_name = EXPERIMENT_NAME  # For MlFlow logging
         self.save_local_dir = os.path.join(self.model_dir, self.filename)
         self.save_gcp_dir = os.path.join(BUCKET_NAME, self.model_dir, self.filename)
@@ -252,6 +250,9 @@ class Trainer:
         #     )
         #     print(f"Saved model in {self.model_dir}/{self.experiment_name}")
         # else:
+        self.checkpoint_path = os.path.join(self.model_dir,
+                                            self.filename.split(
+                                                "."[-2]))
         self.pipeline.load_weights(os.path.join(self.checkpoint_path, 'best_weights.hdf5'))
 
         checkpoint = ModelCheckpoint(
