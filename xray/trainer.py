@@ -44,7 +44,7 @@ from xray.params import (
     # GCP_IMAGE_BUCKET,
     # MODEL_VERSION,
     BASE_MODEL_FOLDER,
-    GCP_MODEL_BUCKET,
+    # GCP_MODEL_BUCKET,
     PATH_TO_LOCAL_MODEL,
     CHECKPOINT_FOLDER,
 )
