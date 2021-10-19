@@ -92,8 +92,8 @@ BUCKET_TRAINING_FOLDER = 'trainings'
 # REGION=europe-west1
 
 PYTHON_VERSION=3.7
-FRAMEWORK=scikit-learn
-RUNTIME_VERSION=2.2
+FRAMEWORK=TensorFlow
+RUNTIME_VERSION=2.5
 
 ##### Package params  - - - - - - - - - - - - - - - - - - -
 

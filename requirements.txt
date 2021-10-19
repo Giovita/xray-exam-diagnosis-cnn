@@ -29,9 +29,5 @@ six>=1.14 ?
 joblib
 memoized-property
 streamlit
-<<<<<<< HEAD
-google.cloud
-=======
 
-git+https://github.com/Giovita/xray-exam-diagnosis-cnn.git#egg=package-two
->>>>>>> 139653e (Consume data from GCP, makefile runs locally, built main() into trainer.py)
+git+https://github.com/Giovita/xray-exam-diagnosis-cnn.git@create_dataset_method#egg=package-two
