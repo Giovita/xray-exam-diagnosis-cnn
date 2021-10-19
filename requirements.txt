@@ -30,4 +30,4 @@ joblib
 memoized-property
 streamlit
 
-# git+https://github.com/Giovita/xray-exam-diagnosis-cnn.git@create_dataset_method#egg=package-two
+git+https://github.com/Giovita/xray-exam-diagnosis-cnn.git@create_dataset_method#egg=xray
