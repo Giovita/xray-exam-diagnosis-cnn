@@ -41,10 +41,12 @@ from xray.params import (
     BUCKET_NAME,
     MLFLOW_URI,
     EXPERIMENT_NAME,
-    BASE_MODEL_FOLDER,
+    GCP_MODEL_BUCKET,
     PATH_TO_LOCAL_MODEL,
     CHECKPOINT_FOLDER,
 )
+    # GCP_IMAGE_BUCKET,
+    # MODEL_VERSION,
 
 from google.cloud import storage
 
