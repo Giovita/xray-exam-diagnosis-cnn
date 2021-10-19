@@ -162,7 +162,10 @@ class Trainer:
 
         self.pipeline = model
         self.model_dir = f"{self.pipeline.layers[0].name}/{self.category_type}/"
+<<<<<<< HEAD
 
+=======
+>>>>>>> f7faedf (Updates to run on Colab safely)
 
     def compile_model(
         self,
@@ -199,7 +202,10 @@ class Trainer:
             }
             loss = loss_dict[self.category_type]
 
-        self.pipeline.compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
+        self.pipeline.compile(optimizer=optimizer,
+                              loss=loss,
+                              metrics=metrics,
+                              **kwargs)
 
         self.set_experiment_name(
             f"{EXPERIMENT_NAME}_{self.pipeline.layers[0].name}_\
@@ -221,6 +227,7 @@ class Trainer:
         #     self.input_shape,
         #     self.dense_layer_geom,
         # ]
+
         for k, v in params.items():
             self.mlflow_log_param(k, v)
 
