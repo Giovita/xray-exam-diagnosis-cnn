@@ -20,7 +20,7 @@ GCP_IMAGE_BUCKET = f"gs://{BUCKET_NAME}/{BUCKET_TRAIN_DATA_PATH}"
 
 GCP_MODEL_STORAGE_LOCATION = 'models/'
 
-GCP_MODEL_BUCKET = f'gs://{BUCKET_NAME}/{GCP_MODEL_STORAGE_LOCATION}'
+# GCP_MODEL_BUCKET = f'gs://{BUCKET_NAME}/{GCP_MODEL_STORAGE_LOCATION}'
 
 # -----------------
 # Predict Params
@@ -46,10 +46,13 @@ PATH_TO_LOCAL_MODEL = 'models/'
 # Model Variables
 # -----------------
 
-"""DEPRECATED. Not to be used. """
 
 MODEL_NAME = 'xray-diagnosis'
 
 MODEL_VERSION = 'v1'
+
+BASE_MODEL_FOLDER = 'models/'
+
+CHECKPOINT_FOLDER = 'checkpoints/'
 
 PATH_TO_GCP_MODEL = f'gs://{BUCKET_NAME}/models/{MODEL_NAME}/{PATH_TO_LOCAL_MODEL}'

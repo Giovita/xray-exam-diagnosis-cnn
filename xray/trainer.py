@@ -3,13 +3,13 @@ from datetime import datetime
 
 from tensorflow.keras import applications
 
-# (
-#     VGG16,
-#     DenseNet121,
-#     ResNet50,
-#     Xception,
-#     InceptionV3,
-# )
+{
+    "VGG16": applications.VGG16,
+    "DenseNet121": applications.DenseNet121,
+    "ResNet50": applications.ResNet50,
+    "Xception": applications.Xception,
+    "InceptionV3": applications.InceptionV3,
+}
 from tensorflow.keras.models import Sequential  # , Model
 from tensorflow.keras.layers import (
     Dense,
@@ -41,10 +41,9 @@ from xray.params import (
     BUCKET_NAME,
     MLFLOW_URI,
     EXPERIMENT_NAME,
-    # GCP_IMAGE_BUCKET,
-    # MODEL_VERSION,
-    GCP_MODEL_BUCKET,
+    BASE_MODEL_FOLDER,
     PATH_TO_LOCAL_MODEL,
+    CHECKPOINT_FOLDER,
 )
 
 from google.cloud import storage
@@ -67,7 +66,6 @@ class Trainer:
         self.gen_train = gen_train
         self.gen_val = gen_val
         self.category_type = category_type
-        self.experiment_name = EXPERIMENT_NAME
 
         self.TRANSFER_CNN = {
             "VGG16": applications.VGG16(),
@@ -86,8 +84,15 @@ class Trainer:
 
         # Data loading and saving attrs
         self.filename = None  # Compile when save_model
-        self.model_dir = None  # Relative route from root to model
-        self.checkpoint_path = None  # File for
+        self.model_dir = os.path.join(
+            BASE_MODEL_FOLDER, self.category_type
+        )  # Relative route from root to model
+        self.checkpoint_path = os.path.join(
+            self.model_dir, self.filename.split("."[-2])
+        )  # File for
+        self.experiment_name = EXPERIMENT_NAME  # For MlFlow logging
+        self.save_local_dir = os.path.join(self.model_dir, self.filename)
+        self.save_gcp_dir = os.path.join(BUCKET_NAME, self.model_dir, self.filename)
 
     def build_cnn(
         self,  # Provides train and val generators
@@ -128,9 +133,6 @@ class Trainer:
         )
         base_model.trainable = False
 
-        # Set model name
-        self.base_arch = base_model.layers[0].name
-
         # Build final layers
         model = Sequential()
         model.add(base_model)
@@ -156,12 +158,14 @@ class Trainer:
             if output_activation != output_activ_dict.get(self.category_type):
                 print("Intended output activation function inconsistent. Please check")
 
-        self.output_activation = output_activation
-
         model.add(Dense(output_shape, activation=output_activation))
 
+        # Set instance attributes
+        self.base_arch = model.layers[0].name
+        self.output_activation = output_activation
         self.pipeline = model
-        self.model_dir = f"{self.pipeline.layers[0].name}/{self.category_type}/"
+        # self.model_dir = f"{self.base_arch}/{self.category_type}"
+        # self.model_dir = os.path.join(, self.category_type)
 
     def compile_model(
         self,
@@ -198,14 +202,15 @@ class Trainer:
             }
             loss = loss_dict[self.category_type]
 
-        self.pipeline.compile(optimizer=optimizer,
-                              loss=loss,
-                              metrics=metrics,
-                              **kwargs)
+        self.pipeline.compile(optimizer=optimizer, loss=loss, metrics=metrics, **kwargs)
 
-        self.set_experiment_name(
-            f"{EXPERIMENT_NAME}_{self.base_arch}_\
-                                        {f'{datetime.now()}'.replace(' ', '_')}"
+        # self.set_experiment_name(
+        #     f"{EXPERIMENT_NAME}_{self.base_arch}_\
+        #                                 {f'{datetime.now()}'.replace(' ', '_')}"
+        # )
+
+        self.filename = os.path.join(
+            self.base_arch, str(datetime.now()).replace(" ", "_")
         )
 
         params = {
@@ -241,13 +246,13 @@ class Trainer:
             monitor="val_loss", mode="min", patience=patience, restore_best_weights=True
         )
 
-        if not self.checkpoint_path:
-            self.checkpoint_path = (
-                f"{self.model_dir}/{self.experiment_name}/checkpoint/best_weights.hdf5"
-            )
-            print(f"Saved model in {self.model_dir}/{self.experiment_name}")
-        else:
-            self.pipeline.load_weights(self.checkpoint_path)
+        # if not self.checkpoint_path:
+        #     self.checkpoint_path = (
+        #         f"{self.model_dir}/{self.experiment_name}/checkpoint/best_weights.hdf5"
+        #     )
+        #     print(f"Saved model in {self.model_dir}/{self.experiment_name}")
+        # else:
+        self.pipeline.load_weights(os.path.join(self.checkpoint_path, 'best_weights.hdf5'))
 
         checkpoint = ModelCheckpoint(
             self.checkpoint_path,
@@ -273,7 +278,7 @@ class Trainer:
 
         # self.mlflow_log_metric(history.history.keys(), history.history.values())
 
-        print(history.history)
+        # print(history.history)
 
         return history
 
@@ -287,7 +292,7 @@ class Trainer:
 
     def evaluate_model(self, gen_test, **kwargs):
         metric_values = self.pipeline.evaluate(
-            gen_test, workers=4, use_multiprocessing=True, **kwargs
+            gen_test, workers=1, use_multiprocessing=True, **kwargs
         )
 
         metric_key = self.pipeline.metrics_names
@@ -317,13 +322,17 @@ class Trainer:
 
     ### Save and Load utilities
 
-    def save_locally(self, model_folder: str = PATH_TO_LOCAL_MODEL):
+    def save_locally(self, model_folder: str = None):
         """Save model in tf.keras default model"""
+
+        if not model_folder:
+            model_folder = self.model_dir
+
         if not os.path.join(os.getcwd(), model_folder):
             os.mkdir(model_folder)
 
-        self.model_dir = os.path.join(os.path.join(os.getcwd(), model_folder))
-        self.filename = f"{self.experiment_name}.h5"
+        # self.model_dir = os.path.join(os.path.join(os.getcwd(), model_folder))
+        # self.filename = f"{self.experiment_name}.h5"
         self.pipeline.save(os.path.join(self.model_dir, self.filename))
 
     def upload_model_to_gcp(self, rm=False):
@@ -333,12 +342,12 @@ class Trainer:
         blob.upload_from_filename(os.path.join(self.model_dir, self.filename))
 
         print(
-            f"=> {self.filename} uploaded to bucket {BUCKET_NAME} inside {GCP_MODEL_STORAGE_LOCATION}",
+            f"=> {self.filename} uploaded to bucket {BUCKET_NAME} inside {GCP_MODEL_STORAGE_LOCATION}/{self.model_dir}",
             "green",
         )
 
         if rm:
-            os.remove(self.filename)
+            os.remove(os.path.join(self.model_dir, self.filename))
 
     def save_model(self):
         """method that saves the model into a .joblib file and uploads it on Google Storage /models folder
@@ -351,15 +360,13 @@ class Trainer:
 
         # Implement here
         self.upload_model_to_gcp(rm=True)
-        print(f"uploaded model to gcp cloud storage under \n => {GCP_MODEL_BUCKET}")
+        print(f"uploaded model to gcp cloud storage under \n => {BUCKET_NAME}")
 
     def load_model(self, model_folder: str = PATH_TO_LOCAL_MODEL):
         """Save model in tf.keras default model"""
-        if not os.path.join(os.getcwd(), model_folder):
-            os.mkdir(model_folder)
+        # if not os.path.join(os.getcwd(), model_folder):
+        #     os.mkdir(model_folder)
 
-        self.model_dir = os.path.join(os.path.join(os.getcwd(), model_folder))
-        self.filename = f"{self.experiment_name}.h5"
         self.pipeline.load_model(os.path.join(self.model_dir, self.filename))
 
     # MLFlow methods
