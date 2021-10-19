@@ -10,7 +10,7 @@ from tensorflow.keras import applications
     "Xception": applications.Xception,
     "InceptionV3": applications.InceptionV3,
 }
-from tensorflow.keras.models import Sequential  # , Model
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import (
     Dense,
     Dropout,
@@ -339,6 +339,11 @@ class Trainer:
         """Upload current model to gcp location"""
         client = storage.Client().bucket(BUCKET_NAME)
         blob = client.blob(GCP_MODEL_STORAGE_LOCATION)
+
+        local_path = os.path.join(self.model_dir, self.filename)
+        for file in os.listdir(local_path):
+            print(file)
+
         blob.upload_from_filename(os.path.join(self.model_dir, self.filename))
 
         print(
@@ -505,9 +510,9 @@ if __name__ == "__main__":
 
     print(f"Finished training with {history.history} results.")
 
-    model.save_locally()
+    # model.save_locally()
 
-    # model.save_model()
+    model.save_model()
 
     print("Saved model")
 
