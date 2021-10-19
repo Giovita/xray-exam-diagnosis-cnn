@@ -204,7 +204,7 @@ class Trainer:
                               **kwargs)
 
         self.set_experiment_name(
-            f"{EXPERIMENT_NAME}_{self.pipeline.layers[0].name}_\
+            f"{EXPERIMENT_NAME}_{self.base_arch}_\
                                         {f'{datetime.now()}'.replace(' ', '_')}"
         )
 
@@ -346,7 +346,7 @@ class Trainer:
 
         # saving the trained model to disk is mandatory to then beeing able to upload it to storage
         # Implement here
-        self.save_locallly()
+        self.save_locally()
         print("saved model locally")
 
         # Implement here
