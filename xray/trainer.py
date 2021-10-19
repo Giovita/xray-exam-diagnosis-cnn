@@ -89,8 +89,8 @@ class Trainer:
         )  # Relative route from root to model
         self.checkpoint_path = None
         self.experiment_name = EXPERIMENT_NAME  # For MlFlow logging
-        self.save_local_dir = os.path.join(self.model_dir, self.filename)
-        self.save_gcp_dir = os.path.join(BUCKET_NAME, self.model_dir, self.filename)
+        self.save_local_dir = os.path.join(self.model_dir)
+        self.save_gcp_dir = os.path.join(BUCKET_NAME, self.model_dir)
 
     def build_cnn(
         self,  # Provides train and val generators
@@ -251,9 +251,8 @@ class Trainer:
         #     print(f"Saved model in {self.model_dir}/{self.experiment_name}")
         # else:
         self.checkpoint_path = os.path.join(self.model_dir,
-                                            self.filename.split(
-                                                "."[-2]))
-        self.pipeline.load_weights(os.path.join(self.checkpoint_path, 'best_weights.hdf5'))
+                                            'checkpoints')
+        # self.pipeline.load_weights(os.path.join(self.checkpoint_path, 'best_weights.hdf5'))
 
         checkpoint = ModelCheckpoint(
             self.checkpoint_path,
@@ -412,7 +411,7 @@ if __name__ == "__main__":
     img_size = (224, 224)
     job_type = "multilabel"
     split = (0.65, 0.175, 0.175)
-    data_filter = 0.3
+    data_filter = 0.05
     cnn_geometry = (1024, 512, 256)
     dropout_layer = False
     batch_size = 32
@@ -506,7 +505,9 @@ if __name__ == "__main__":
 
     print(f"Finished training with {history.history} results.")
 
-    model.save_model()
+    model.save_locally()
+
+    # model.save_model()
 
     print("Saved model")
 
