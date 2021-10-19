@@ -162,10 +162,6 @@ class Trainer:
 
         self.pipeline = model
         self.model_dir = f"{self.pipeline.layers[0].name}/{self.category_type}/"
-<<<<<<< HEAD
-
-=======
->>>>>>> f7faedf (Updates to run on Colab safely)
 
     def compile_model(
         self,
@@ -275,7 +271,9 @@ class Trainer:
             **kwargs,
         )
 
-        self.mlflow_log_metric(history.history.keys(), history.history.values())
+        # self.mlflow_log_metric(history.history.keys(), history.history.values())
+
+        print(history.history)
 
         return history
 
