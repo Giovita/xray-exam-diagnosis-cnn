@@ -1,7 +1,6 @@
 import os
 
 from google.cloud import storage
-from termcolor import colored
 from xray.params import BUCKET_NAME, GCP_STORAGE_LOCATION
 
 
@@ -17,8 +16,7 @@ def storage_upload(model_name,
     blob = client.blob(storage_location)
     blob.upload_from_filename(local_model_name)
     print(
-        colored(
-            f"=> {local_model_name} uploaded to bucket {BUCKET_NAME} inside {storage_location}",
-            "green"))
+        f"=> {local_model_name} uploaded to bucket {BUCKET_NAME} inside {storage_location}",
+            "green")
     if rm:
         os.remove(local_model_name)

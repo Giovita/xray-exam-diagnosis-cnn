@@ -22,17 +22,6 @@ def get_paths(
         print("'Path' column already exists")
         return
 
-    """
-    Creates column with paths from DF, according to file name (Image Index)
-    and home folder in 'data_folder'.
-    - dataframe: df to modify
-    - data_folder: root dir to search images
-    """
-
-    if 'path' in dataframe.columns and not overwrite_path:
-        print("'Path' column already exists")
-        return
-
     all_image_paths = {os.path.basename(x): x for x in glob(
                 os.path.join(data_folder, '**/*.png'), recursive=True)}
 

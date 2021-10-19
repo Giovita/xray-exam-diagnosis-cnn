@@ -7,7 +7,7 @@ from itertools import chain
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from google.cloud import storage
 
-from xray.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, BUCKET_TRAIN_CSV_PATH
+from xray.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, PROJECT_ID
 
 
 def get_data(labels_file: str, source = 'csv'):
@@ -224,11 +224,63 @@ def build_generator(
     return generator
 
 
+import random
+from glob import glob
+
+import tensorflow as tf
+
+
+def make_dataset(path,
+                 batch_size,
+                 filenames:list,
+                 labels: list,
+                 img_size: tuple = (224, 224),
+                 classes_in_folders=False):
+    """
+    - path: root to image folders
+    - batch_size: to iterate
+    - filenames: nd.array with list of absolute paths (filenames), in same order as label_array
+    - label_array: matching index as filenames
+    """
+    def parse_image(filename):
+        image = tf.io.read_file(filename)
+        image = tf.image.decode_jpeg(image, channels=3)
+        image = tf.image.resize(image, img_size)
+        return image
+
+    def configure_for_performance(ds):
+        ds = ds.shuffle(buffer_size=1000)
+        ds = ds.batch(batch_size)
+        ds = ds.repeat()
+        ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+        return ds
+
+    if classes_in_folders:
+        classes = os.listdir(path)
+        filenames = glob(path + "/*/*")
+        it = np.nditer(filenames, flags=['refs_ok', 'c_index'], )
+        random.shuffle(filenames)
+        for file in it:
+            labels = [classes.index(name.split("/")[-2]) for name in filenames]
+    else:
+        filenames = filenames
+        labels = labels
+
+    filenames_ds = tf.data.Dataset.from_tensor_slices(filenames)
+    images_ds = filenames_ds.map(
+        parse_image, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    labels_ds = tf.data.Dataset.from_tensor_slices(labels)
+    ds = tf.data.Dataset.zip((images_ds, labels_ds))
+    ds = configure_for_performance(ds)
+
+    return ds
+
+
 def get_data_from_gcp(filename: str, optimize=False, **kwargs):
     """method to get the training data (or a portion of it) from google cloud bucket"""
-    client = storage.Client()
+    client = storage.Client(project=PROJECT_ID)
     # path = fr"gs://{BUCKET_NAME}/{BUCKET_TRAIN_CSV_PATH}/{filename}"
-    path = os.path.join('gs://',BUCKET_NAME, BUCKET_TRAIN_CSV_PATH, filename)
+    path = os.path.join('gs://',BUCKET_NAME, filename)
     df = pd.read_csv(path)
     return df
 

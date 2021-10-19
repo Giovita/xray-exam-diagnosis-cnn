@@ -1,13 +1,15 @@
 import os
 from datetime import datetime
 
-from tensorflow.keras.applications import (
-    VGG16,
-    DenseNet121,
-    ResNet50,
-    Xception,
-    InceptionV3,
-)
+from tensorflow.keras import applications
+
+# (
+#     VGG16,
+#     DenseNet121,
+#     ResNet50,
+#     Xception,
+#     InceptionV3,
+# )
 from tensorflow.keras.models import Sequential  # , Model
 from tensorflow.keras.layers import (
     Dense,
@@ -39,8 +41,8 @@ from xray.params import (
     BUCKET_NAME,
     MLFLOW_URI,
     EXPERIMENT_NAME,
-    GCP_IMAGE_BUCKET,
-    MODEL_VERSION,
+    # GCP_IMAGE_BUCKET,
+    # MODEL_VERSION,
     GCP_MODEL_BUCKET,
     PATH_TO_LOCAL_MODEL,
 )
@@ -68,11 +70,11 @@ class Trainer:
         self.experiment_name = EXPERIMENT_NAME
 
         self.TRANSFER_CNN = {
-            "VGG16": VGG16(),
-            "densenet": DenseNet121,
-            "ResNet50": ResNet50,
-            "Xception": Xception,
-            "InceptionV3": InceptionV3,
+            "VGG16": applications.VGG16(),
+            "densenet": applications.DenseNet121,
+            "ResNet50": applications.ResNet50,
+            "Xception": applications.Xception,
+            "InceptionV3": applications.InceptionV3,
         }
 
         ## Compile attributes: modified at model compile
@@ -85,14 +87,7 @@ class Trainer:
         # Data loading and saving attrs
         self.filename = None  # Compile when save_model
         self.model_dir = None  # Relative route from root to model
-
-    def set_experiment_name(self, experiment_name):
-        """defines the experiment name for MLFlow"""
-        self.experiment_name = experiment_name
-
-    def set_pipeline(self):
-        """How to automatically scale to 0-1 when predicting?"""
-        pass
+        self.checkpoint_path = None  # File for
 
     def build_cnn(
         self,  # Provides train and val generators
@@ -100,7 +95,7 @@ class Trainer:
         output_shape,
         dense_layer_geometry: tuple,
         output_activation=None,
-        transfer_model=VGG16,
+        transfer_model=applications.VGG16,
         dense_layer_activation="relu",
         dropout_layers=True,
         dropout_rate=0.2,
@@ -128,7 +123,7 @@ class Trainer:
         else:
             self.input_shape = input_shape
 
-        base_model = VGG16(
+        base_model = applications.VGG16(
             include_top=False, weights="imagenet", input_shape=self.input_shape
         )
         base_model.trainable = False
@@ -181,9 +176,15 @@ class Trainer:
 
         if not metrics:
             if self.category_type == "binary":
-                metrics = [Accuracy(), Precision(), Recall()]
+                metrics = [Accuracy(), Precision(), Recall(), AUC()]
             else:
-                metrics = [Accuracy(), Precision(), Recall(), CategoricalAccuracy()]
+                metrics = [
+                    Accuracy(),
+                    Precision(),
+                    Recall(),
+                    AUC(),
+                    CategoricalAccuracy(),
+                ]
 
         if not loss:
             loss_dict = {
@@ -219,15 +220,31 @@ class Trainer:
             self.mlflow_log_param(k, v)
 
     def fit_model(
-        self, callback=None, patience=10, epochs=20, steps_per_epoch=None, **kwargs
+        self,
+        callback=None,
+        patience=10,
+        epochs=20,
+        steps_per_epoch=None,
+        restart=False,
+        **kwargs,
     ):
 
         es = EarlyStopping(
             monitor="val_loss", mode="min", patience=patience, restore_best_weights=True
         )
 
+        if not self.checkpoint_path:
+            self.checkpoint_path = (
+                f"{self.model_dir}/{self.experiment_name}/checkpoint/best_weights.hdf5"
+            )
+            print(f"Saved model in {self.model_dir}/{self.experiment_name}")
+        else:
+            self.pipeline.load_weights(self.checkpoint_path)
+
         checkpoint = ModelCheckpoint(
-            "best_weights.hdf5", save_best_only=True, verbose=2
+            self.checkpoint_path,
+            save_best_only=True,
+            verbose=2,
         )
 
         adapt_lr = ReduceLROnPlateau(patience=5, verbose=1)
@@ -277,10 +294,16 @@ class Trainer:
 
         return prediction
 
+    ### Modify Params
+
     def add_base_model(self, model_name: str, model):
         """Add a new tf.keras.application base model into the class."""
 
         self.TRANSFER_CNN[model_name] = model
+
+    def set_experiment_name(self, experiment_name):
+        """defines the experiment name for MLFlow"""
+        self.experiment_name = experiment_name
 
     ### Save and Load utilities
 
@@ -307,7 +330,30 @@ class Trainer:
         if rm:
             os.remove(self.filename)
 
+    def save_model(self):
+        """method that saves the model into a .joblib file and uploads it on Google Storage /models folder
+        HINTS : use joblib library and google-cloud-storage"""
+
+        # saving the trained model to disk is mandatory to then beeing able to upload it to storage
+        # Implement here
+        self.save_locallly()
+        print("saved model locally")
+
+        # Implement here
+        self.upload_model_to_gcp(rm=True)
+        print(f"uploaded model to gcp cloud storage under \n => {GCP_MODEL_BUCKET}")
+
+    def load_model(self, model_folder: str = PATH_TO_LOCAL_MODEL):
+        """Save model in tf.keras default model"""
+        if not os.path.join(os.getcwd(), model_folder):
+            os.mkdir(model_folder)
+
+        self.model_dir = os.path.join(os.path.join(os.getcwd(), model_folder))
+        self.filename = f"{self.experiment_name}.h5"
+        self.pipeline.load_model(os.path.join(self.model_dir, self.filename))
+
     # MLFlow methods
+
     @memoized_property
     def mlflow_client(self):
         mlflow.set_tracking_uri(MLFLOW_URI)
@@ -333,13 +379,126 @@ class Trainer:
         self.mlflow_client.log_metric(self.mlflow_run.info.run_id, key, value)
 
 
+if __name__ == "__main__":
+    import math
+    import os
+    from glob import glob
+
+    import numpy as np
+    import pandas as pd
+    from xray import data, params, trainer, utils
+    from sklearn.preprocessing import MultiLabelBinarizer
+
+    # Some Parameters
+    filename = "xray_df.csv"
+    img_size = (224, 224)
+    job_type = "multilabel"
+    split = (0.65, 0.175, 0.175)
+    data_filter = 0.3
+    cnn_geometry = (1024, 512, 256)
+    dropout_layer = False
+    batch_size = 32
+    epochs = 1
+
+    print(f"Start building and training CNN for {job_type}.")
+
+    print("Set Parameters")
+
+    # Load data
+    path_to_png = params.GCP_IMAGE_BUCKET
+    df = data.get_data_from_gcp(filename)
+
+    print("Loaded Training Data")
+
+    # Train multilabel for sick people. Modify if binary class
+    df = df[df["Fixed_Labels"] != "No Finding"]
+
+    print(f"Total {len(df)} files loaded")
+
+    # Small data ELT
+    df["path"] = df.path.map(
+        lambda x: "/".join(x.split("/")[-3:])
+    )  # Relative paths to file loc
+    df.path = df.path.map(
+        lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
+    )  # Absolute path in GCP
+    df["labels"] = df["Fixed_Labels"].map(
+        lambda x: x.split("|")
+    )  # 'cat_col' not working
+
+    # OneHot Encode multilabel
+    mlb = MultiLabelBinarizer().fit(df.labels)
+    y = mlb.transform(df.labels).astype("int16")
+    y = y.tolist()
+
+    print("Finished preprocessing")
+
+    # Train, val, test split
+    df_train, df_val, df_test = data.split_df(
+        df, "Patient ID", split, total_filter=data_filter
+    )
+    df_train = df_train.path.to_list()
+    df_val = df_val.path.to_list()
+    df_test = df_test.path.to_list()
+
+    print(f"Finished reducing and splitting Data. Kept {len(df)*data_filter} records")
+
+    # Make tf.data.Dataset
+    ds_train = data.make_dataset(path_to_png, 32, df_train, y)
+    ds_val = data.make_dataset(path_to_png, 32, df_val, y)
+
+    classes_dict = pd.DataFrame(mlb.classes_).to_dict()[0]
+    classes = mlb.classes_
+
+    print(f"Finished making tf.data.Datasets with classes: {classes}")
+
+    # Trainer()
+    model = trainer.Trainer(ds_train, ds_val, job_type)
+
+    print("Instanciated Trainer()")
+
+    model.build_cnn(
+        input_shape=img_size,
+        output_shape=len(classes),
+        dense_layer_geometry=(1024, 512, 256),
+        dropout_layers=dropout_layer,
+        dropout_rate=0.25,
+    )
+
+    print(f"Built CNN with {model.base_arch} base model.")
+
+    model.compile_model()
+
+    print(f"Finished Compiling model. ")
+
+    training_images = len(df_train)
+    steps_per_epoch = math.ceil(training_images / batch_size)
+
+    validation_images = len(df_val)
+    validation_steps = math.ceil(validation_images / batch_size)
+
+    print(f"Start model fitting for {epochs} epochs")
+
+    history = model.fit_model(
+        epochs=epochs,
+        batch_size=batch_size,
+        steps_per_epoch=steps_per_epoch,
+        validation_steps=validation_steps,
+    )
+
+    print(f"Finished training with {history.history} results.")
+
+    model.save_model()
+
+    print("Saved model")
+
 # trainer should be instanciated with everything inherent to the model:
 # parameters set in its methods, may update atributes, that default with None when
 # instanciated
-"""
-TODO
+# """
+# TODO
 
-refactor so every input is given on instanciation (except fit), add
-doc to every method  --> is it best design?
+# refactor so every input is given on instanciation (except fit), add
+# doc to every method  --> is it best design?
 
-"""
+# """
