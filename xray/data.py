@@ -7,7 +7,7 @@ from itertools import chain
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from google.cloud import storage
 
-from xray.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, BUCKET_TRAIN_CSV_PATH
+from xray.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, PROJECT_ID
 
 
 def get_data(labels_file: str, source = 'csv'):
@@ -278,7 +278,7 @@ def make_dataset(path,
 
 def get_data_from_gcp(filename: str, optimize=False, **kwargs):
     """method to get the training data (or a portion of it) from google cloud bucket"""
-    client = storage.Client()
+    client = storage.Client(project=PROJECT_ID)
     # path = fr"gs://{BUCKET_NAME}/{BUCKET_TRAIN_CSV_PATH}/{filename}"
     path = os.path.join('gs://',BUCKET_NAME, filename)
     df = pd.read_csv(path)

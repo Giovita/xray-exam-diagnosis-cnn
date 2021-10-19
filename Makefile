@@ -62,7 +62,7 @@ pypi:
 # LOCAL_PATH=PATH_TO_FILE_train_1k.csv
 
 # project id
-PROJECT_ID=xray - cnn - 329114
+PROJECT_ID=xray-cnn-329114
 
 # bucket name
 BUCKET_NAME=images-xray-lewagon

@@ -6,7 +6,7 @@
 
 # PROJECT_ID = 'wagon-bootcamp-323816'  # Test for Santiago
 
-PROJECT_ID ='xray - cnn - 329114'
+PROJECT_ID = 'xray-cnn-329114'
 
 BUCKET_NAME ='images-xray-lewagon'  # 'xray-lewagon-testupload'
 
