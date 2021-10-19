@@ -41,7 +41,7 @@ from xray.params import (
     BUCKET_NAME,
     MLFLOW_URI,
     EXPERIMENT_NAME,
-    GCP_MODEL_BUCKET,
+    BASE_MODEL_FOLDER,
     PATH_TO_LOCAL_MODEL,
     CHECKPOINT_FOLDER,
 )
