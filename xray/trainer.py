@@ -128,6 +128,9 @@ class Trainer:
         )
         base_model.trainable = False
 
+        # Set model name
+        self.base_arch = base_model.layers[0].name
+
         # Build final layers
         model = Sequential()
         model.add(base_model)
@@ -158,6 +161,8 @@ class Trainer:
         model.add(Dense(output_shape, activation=output_activation))
 
         self.pipeline = model
+        self.model_dir = f"{self.pipeline.layers[0].name}/{self.category_type}/"
+
 
     def compile_model(
         self,
