@@ -112,17 +112,18 @@ run_locally:
 
 gcp_submit_training:
 	gcloud ai-platform jobs submit training ${JOB_NAME} \
-		--job-dir gs://${BUCKET_NAME}/${BUCKET_TRAINING_FOLDER} \
-		--package-path ${PACKAGE_NAME} \
-		--module-name ${PACKAGE_NAME}.${FILENAME} \
+    --job-dir gs://${BUCKET_NAME}/${BUCKET_TRAINING_FOLDER} \
+    --staging-bucket=gs://${BUCKET_NAME} \
+		--package-path=${PACKAGE_NAME} \
+		--module-name=${PACKAGE_NAME}.${FILENAME} \
 		--python-version=${PYTHON_VERSION} \
 		--runtime-version=${RUNTIME_VERSION} \
 		--region ${REGION} \
-    --scale-tier BASIC_GPU \
-    # --master-machine-type ${MACHINE_TYPE}
+    --scale-tier=BASIC_GPU \
 		--stream-logs
 
 
+# --master-machine-type ${MACHINE_TYPE}
 # ----------------------------------
 #      Prediction API
 # ----------------------------------

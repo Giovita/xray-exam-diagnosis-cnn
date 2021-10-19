@@ -1,7 +1,6 @@
-# packaging
 pip>=9
 setuptools>=26
-twine ?
+twine
 wheel>=0.29
 
 # data science
@@ -22,12 +21,10 @@ pillow
 gcsfs
 google-cloud-storage
 mlflow
-s3fs ?
+s3fs
 
 # utilities
-six>=1.14 ?
+six>=1.14
 joblib
 memoized-property
 streamlit
-
-git+https://github.com/Giovita/xray-exam-diagnosis-cnn.git@create_dataset_method#egg=xray
