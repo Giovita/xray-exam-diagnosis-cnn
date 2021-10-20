@@ -119,8 +119,6 @@ if __name__ == "__main__":
 
     print(f"Start model fitting for {epochs} epochs")
 
-    model.mlflow_log_param('epochs', epochs)
-
     history = model.fit_model(
         epochs=epochs,
         batch_size=batch_size,
