@@ -137,7 +137,7 @@ class Trainer:
         else:
             self.input_shape = input_shape
 
-        base_model = applications.VGG16(
+        base_model = applications.VGG19(
             include_top=False, weights="imagenet", input_shape=self.input_shape
         )
         base_model.trainable = False
