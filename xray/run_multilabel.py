@@ -13,8 +13,8 @@ if __name__ == "__main__":
     img_size = (224, 224)
     job_type = "multilabel"
     split = (0.65, 0.175, 0.175)  # Train Val Test
-    data_filter = 0.5
-    cnn_geometry = (1024, 512, 256)
+    data_filter = 0.6
+    cnn_geometry = (2024, 512, 256, 256)
     dropout_layer = False
     dropout_rate = 0.2
     batch_size = 32
@@ -89,6 +89,8 @@ if __name__ == "__main__":
     model.mlflow_log_param('total_imgs', model.train_obs)
     model.train_val_test = split
     model.mlflow_log_param('train_val_test', model.train_val_test)
+    model.mlflow_log_param('dropouts', dropout_layer)
+    model.mlflow_log_param('dropouts rate', dropout_rate)
 
     print("Instanciated Trainer()")
 
