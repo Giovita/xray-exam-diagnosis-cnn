@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     # data loading params for new model
     original_model_dir = "models/binary/vgg16/"
-    filename_model = "date_time"  # real filename
+    filename = "date_time"  # real filename
     dest_dir = "models/binary/vgg16/"  # dest_dir: relative path of destination folder.
 
     """
@@ -27,13 +27,13 @@ if __name__ == "__main__":
     img_size = (224, 224)
     job_type = "binary"
     split = (0.65, 0.175, 0.175)  # Train Val Test
-    data_filter = 0.3
-    cnn_geometry = (1024, 512, 256)
+    data_filter = 0.01
+    cnn_geometry = 512
     dropout_layer = False
     dropout_rate = 0.2
-    batch_size = 32
-    epochs = 40
-    # learning_rate = 0.0005
+    batch_size = 64
+    epochs = 1
+    # learning_rate = 0.001
 
     print(f"Start building and training CNN for {job_type}.")
 
@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
     if load_previous:
         model.pipeline = model.load_model_from_gcp(
-            original_model_dir, filename_model, dest_dir
+            original_model_dir, filename, dest_dir
         )
 
     # Store trainer split for mlflow params

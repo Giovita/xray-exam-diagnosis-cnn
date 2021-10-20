@@ -8,9 +8,9 @@ def get_paths(
     data_folder,
     return_path_col=True,
     return_relative=False,
-    verbose = 0,
-    overwrite_path=False
-    ):
+    verbose=0,
+    overwrite_path=False,
+):
     """
     Creates column with paths from DF, according to file name (Image Index)
     and home folder in 'data_folder'.
@@ -18,22 +18,28 @@ def get_paths(
     - data_folder: root dir to search images
     """
 
-    if 'path' in dataframe.columns and not overwrite_path:
+    if "path" in dataframe.columns and not overwrite_path:
         print("'Path' column already exists")
         return
 
-    all_image_paths = {os.path.basename(x): x for x in glob(
-                os.path.join(data_folder, '**/*.png'), recursive=True)}
+    all_image_paths = {
+        os.path.basename(x): x
+        for x in glob(os.path.join(data_folder, "**/*.png"), recursive=True)
+    }
 
     if return_path_col:
-        dataframe['path'] = dataframe['Image Index'].map(all_image_paths.get)
+        dataframe["path"] = dataframe["Image Index"].map(all_image_paths.get)
         if return_relative:
-            dataframe['path'] = dataframe.path.map(lambda x: "/".join(x.split("/")[-3:]))
+            dataframe["path"] = dataframe.path.map(
+                lambda x: "/".join(x.split("/")[-3:])
+            )
 
     if verbose == 1:
-        print('Scans found:', len(all_image_paths), ', Total Headers',
-          dataframe.shape[0])
+        print(
+            "Scans found:", len(all_image_paths), ", Total Headers", dataframe.shape[0]
+        )
         return all_image_paths
+
 
 """
 move files from gdrive to gcp using G. Colab
