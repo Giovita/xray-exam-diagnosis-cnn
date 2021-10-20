@@ -33,3 +33,4 @@ time
 # streamlit
 streamlit
 cv2
+PIL
