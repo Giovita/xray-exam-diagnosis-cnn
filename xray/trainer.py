@@ -47,6 +47,8 @@ from xray.params import (
     PATH_TO_LOCAL_MODEL,
     CHECKPOINT_FOLDER,
 )
+    # GCP_IMAGE_BUCKET,
+    # MODEL_VERSION,
 
 from google.cloud import storage
 
