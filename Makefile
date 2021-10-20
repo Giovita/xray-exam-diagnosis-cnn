@@ -72,7 +72,7 @@ BUCKET_FOLDER=data
 
 BUCKET_FILE_NAME=$(shell basename ${LOCAL_PATH})
 
-REGION=europe-west1
+REGION=us-west1
 
 set_project:
 	-@gcloud config set project ${PROJECT_ID}
@@ -101,6 +101,8 @@ MACHINE_TYPE=n1-standard-16
 
 PACKAGE_NAME=xray
 FILENAME=trainer
+FILENAME_BINARY = run_binary
+FILENAME_MULTILABEL = run_multilabel
 
 ##### Job - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -122,6 +124,29 @@ gcp_submit_training:
     --scale-tier=BASIC_GPU \
 		--stream-logs
 
+gcp_submit_training_binary:
+	gcloud ai-platform jobs submit training ${JOB_NAME} \
+    --job-dir gs://${BUCKET_NAME}/${BUCKET_TRAINING_FOLDER} \
+    --staging-bucket=gs://${BUCKET_NAME} \
+		--package-path=${PACKAGE_NAME} \
+		--module-name=${PACKAGE_NAME}.${FILENAME_BINARY} \
+		--python-version=${PYTHON_VERSION} \
+		--runtime-version=${RUNTIME_VERSION} \
+		--region ${REGION} \
+    --scale-tier=BASIC_GPU \
+		--stream-logs
+
+gcp_submit_training_multilabel:
+	gcloud ai-platform jobs submit training ${JOB_NAME} \
+    --job-dir gs://${BUCKET_NAME}/${BUCKET_TRAINING_FOLDER} \
+    --staging-bucket=gs://${BUCKET_NAME} \
+		--package-path=${PACKAGE_NAME} \
+		--module-name=${PACKAGE_NAME}.${FILENAME_MULTILABEL} \
+		--python-version=${PYTHON_VERSION} \
+		--runtime-version=${RUNTIME_VERSION} \
+		--region ${REGION} \
+    --scale-tier=BASIC_GPU \
+		--stream-logs
 
 # --master-machine-type ${MACHINE_TYPE}
 # ----------------------------------

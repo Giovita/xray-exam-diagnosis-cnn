@@ -1,16 +1,18 @@
+from http.client import parse_headers
 import os
 from datetime import datetime
 
 from tensorflow.keras import applications
 
-{
-    "VGG16": applications.VGG16,
-    "DenseNet121": applications.DenseNet121,
-    "ResNet50": applications.ResNet50,
-    "Xception": applications.Xception,
-    "InceptionV3": applications.InceptionV3,
-}
-from tensorflow.keras.models import Sequential  # , Model
+# {
+#     "VGG16": applications.VGG16,
+#     "DenseNet121": applications.DenseNet121,
+#     "ResNet50": applications.ResNet50,
+#     "Xception": applications.Xception,
+#     "InceptionV3": applications.InceptionV3,
+# }
+
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import (
     Dense,
     Dropout,
@@ -29,8 +31,8 @@ from tensorflow.keras.metrics import (
     CategoricalAccuracy,
     AUC,
 )
-import PIL.Image
-from tensorflow import image
+# import PIL.Image
+# from tensorflow import image
 
 import mlflow
 from mlflow.tracking import MlflowClient
@@ -70,12 +72,18 @@ class Trainer:
         self.category_type = category_type
 
         self.TRANSFER_CNN = {
-            "VGG16": applications.VGG16(),
+            "VGG16": applications.VGG16,
             "densenet": applications.DenseNet121,
             "ResNet50": applications.ResNet50,
             "Xception": applications.Xception,
             "InceptionV3": applications.InceptionV3,
         }
+
+        # self.TRANSFER_CNN['VGG16']( )
+
+        self.data_split = None
+        self.train_obs = None
+        self.train_val_test = None
 
         ## Compile attributes: modified at model compile
         self.base_arch = None
@@ -97,8 +105,8 @@ class Trainer:
     def build_cnn(
         self,  # Provides train and val generators
         input_shape,
-        output_shape,
         dense_layer_geometry: tuple,
+        output_shape=None,
         output_activation=None,
         transfer_model=applications.VGG16,
         dense_layer_activation="relu",
@@ -106,8 +114,9 @@ class Trainer:
         dropout_rate=0.2,
     ):
         """
+        ***output_shape must be set to num_categories if not 'binary' classif
         params:
-        - input_shape: (size, size, channels) of input images --> (128, 128, 3) TYPE TUPLE
+        - input_shape: (size, size, channels) of input images --> (224, 224, 3) TYPE TUPLE
         - output_shape: number of output units in the last Dense layer -->
             binary = 1 , multiple = n_labels  TYPE INT
         - dense_layer_geometry: geometry of each dense_layer aded.
@@ -152,6 +161,9 @@ class Trainer:
             "multilabel": "sigmoid",
         }
 
+        if self.category_type == 'binary':
+            output_shape = 1
+
         if not output_activation:  # and self.category_type == "binary":
             output_activation = output_activ_dict.get(self.category_type)
         else:
@@ -184,10 +196,10 @@ class Trainer:
 
         if not metrics:
             if self.category_type == "binary":
-                metrics = [Accuracy(), Precision(), Recall(), AUC()]
+                metrics = ['accuracy', Precision(), Recall(), AUC()]
             else:
                 metrics = [
-                    Accuracy(),
+                    'accuracy',
                     Precision(),
                     Recall(),
                     AUC(),
@@ -216,6 +228,7 @@ class Trainer:
         params = {
             "base_arch": self.base_arch,
             "dense_layer_num": self.dense_layer_num,
+            'prediction_type': self.category_type,
             "output_activation": self.output_activation,
             "input_shape": self.input_shape,
             "dense_layer_geom": self.dense_layer_geom,
@@ -292,24 +305,34 @@ class Trainer:
         print("Fitted")
         return history
 
-    def evaluate_model(self, gen_test, **kwargs):
-        metric_values = self.pipeline.evaluate(
-            gen_test, workers=1, use_multiprocessing=True, **kwargs
+    def evaluate_model(self, gen_test, steps=None, return_dict=True, **kwargs):
+        metrics = self.pipeline.evaluate(
+            gen_test, steps = steps, return_dict=return_dict, **kwargs
         )
-
+        """
+        When providing an infinite dataset, you must specify the number of steps
+        to run (if you did not intend to create an infinite dataset, make sure to
+        not call `repeat()` on the dataset).
+        """
         metric_key = self.pipeline.metrics_names
 
-        self.mlflow_log_metric(metric_key, metric_values)
+        for k, v in metrics.items():
+            self.mlflow_log_metric(k, v)
 
-    def predict_xray(self, x):
-        """Predict disease from xray img."""
+        # print(metrics)
+        # print(metric_key)
 
-        img = PIL.Image.open(x)
-        img = image.resize(img, size=self.input_shape)
-        img = image.grayscale_to_rgb(img)
-        prediction = self.pipeline.predict(img)
+        return metrics
 
-        return prediction
+    # def predict_xray(self, x):
+    #     """Predict disease from xray img."""
+
+    #     img = PIL.Image.open(x)
+    #     img = image.resize(img, size=self.input_shape)
+    #     img = image.grayscale_to_rgb(img)
+    #     prediction = self.pipeline.predict(img)
+
+    #     return prediction
 
     ### Modify Params
 
@@ -335,17 +358,24 @@ class Trainer:
 
         # self.model_dir = os.path.join(os.path.join(os.getcwd(), model_folder))
         # self.filename = f"{self.experiment_name}.h5"
-        self.pipeline.save(os.path.join(self.model_dir, self.filename))
+        self.pipeline.save(os.path.join(self.model_dir, self.filename), save_format='h5')
 
-    def upload_model_to_gcp(self, rm=False):
+    def upload_model_to_gcp(self, rm=True):
         """Upload current model to gcp location"""
         client = storage.Client().bucket(BUCKET_NAME)
-        blob = client.blob(GCP_MODEL_STORAGE_LOCATION)
-        blob.upload_from_filename(os.path.join(self.model_dir, self.filename))
+
+        destination = os.path.join(self.model_dir, self.filename)
+        blob = client.blob(destination)
+
+        local_path = os.path.join(os.getcwd(), self.model_dir, self.filename)
+
+        blob.upload_from_filename(local_path)
+
+        # if os.path.isfile(local_path):
+
 
         print(
-            f"=> {self.filename} uploaded to bucket {BUCKET_NAME} inside {GCP_MODEL_STORAGE_LOCATION}/{self.model_dir}",
-            "green",
+            f"=> {self.filename} uploaded to bucket {BUCKET_NAME} inside {GCP_MODEL_STORAGE_LOCATION}/{self.model_dir}"
         )
 
         if rm:
@@ -361,7 +391,7 @@ class Trainer:
         print("saved model locally")
 
         # Implement here
-        self.upload_model_to_gcp(rm=True)
+        self.upload_model_to_gcp(rm=False)
         print(f"uploaded model to gcp cloud storage under \n => {BUCKET_NAME}")
 
     def load_model(self, model_folder: str = PATH_TO_LOCAL_MODEL):
@@ -465,6 +495,7 @@ if __name__ == "__main__":
     # Make tf.data.Dataset
     ds_train = data.make_dataset(path_to_png, 32, df_train, y)
     ds_val = data.make_dataset(path_to_png, 32, df_val, y)
+    ds_test = data.make_dataset(path_to_png, 32, df_test, y, test_set=True)
 
     classes_dict = pd.DataFrame(mlb.classes_).to_dict()[0]
     classes = mlb.classes_
@@ -496,6 +527,9 @@ if __name__ == "__main__":
     validation_images = len(df_val)
     validation_steps = math.ceil(validation_images / batch_size)
 
+    test_images = len(df_test)
+    test_steps = math.ceil(test_images / batch_size)
+
     print(f"Start model fitting for {epochs} epochs")
 
     history = model.fit_model(
@@ -507,9 +541,15 @@ if __name__ == "__main__":
 
     print(f"Finished training with {history.history} results.")
 
-    model.save_locally()
+    # model.save_locally()
+
+    print("Evaluating performance")
+    results = model.evaluate_model(ds_test,) #steps=ds_test)
+    # print(f"Results: {results.histoy}")
 
     # model.save_model()
+
+    model.upload_model_to_gcp()
 
     print("Saved model")
 

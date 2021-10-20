@@ -7,4 +7,6 @@ raw_data/
 **/__pycache__/
 .env
 *.hdf5
-models/*
+
+models/
+

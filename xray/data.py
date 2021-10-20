@@ -234,6 +234,7 @@ def make_dataset(path,
                  batch_size,
                  filenames:list,
                  labels: list,
+                 test_set=False,
                  img_size: tuple = (224, 224),
                  classes_in_folders=False):
     """
@@ -251,7 +252,8 @@ def make_dataset(path,
     def configure_for_performance(ds):
         ds = ds.shuffle(buffer_size=1000)
         ds = ds.batch(batch_size)
-        ds = ds.repeat()
+        if not test_set:
+            ds = ds.repeat()
         ds = ds.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
         return ds
 
@@ -285,19 +287,19 @@ def get_data_from_gcp(filename: str, optimize=False, **kwargs):
     return df
 
 
-if __name__ == "__main__":
-    """Test script to test data utilities. """
+# if __name__ == "__main__":
+    # """Test script to test data utilities. """
 
-    import os
+    # import os
 
-    path_to_csv = "../../raw_data/full-dataset/"
-    csv_file = "xray_df.csv"
-    df = get_data(os.path.join(path_to_csv, csv_file))
-    ds_train, ds_val, ds_test = split_df(dataset=df,
-                                              column_to_filter_by='Patient ID',
-                                              train_val_test=(0.65, 0.15,
-                                                              0.15))
+    # path_to_csv = "../../raw_data/full-dataset/"
+    # csv_file = "xray_df.csv"
+    # df = get_data(os.path.join(path_to_csv, csv_file))
+    # ds_train, ds_val, ds_test = split_df(dataset=df,
+    #                                           column_to_filter_by='Patient ID',
+    #                                           train_val_test=(0.65, 0.15,
+    #                                                           0.15))
 
-    print('train :', ds_train.shape)
-    print('val :', ds_val.shape)
-    print('test :', ds_test.shape)
+    # print('train :', ds_train.shape)
+    # print('val :', ds_val.shape)
+    # print('test :', ds_test.shape)
