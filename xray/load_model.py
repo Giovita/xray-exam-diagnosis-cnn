@@ -11,6 +11,7 @@ from xray.params import (
     BASE_MODEL_FOLDER,
     PATH_TO_LOCAL_MODEL,
     CHECKPOINT_FOLDER,
+    PROJECT_ID,
 )
 from pathlib import Path
 
@@ -33,7 +34,7 @@ def load_model_from_gcp(origin_model_dir, filename, dest_dir):
     - filename = used as 'date_time of model compiling'
     - dest_dir: relative path of destination folder.
     """
-    client = storage.Client().bucket(BUCKET_NAME)
+    client = storage.Client(PROJECT_ID).bucket(BUCKET_NAME)
 
     origin = os.path.join(origin_model_dir, filename)
     blob = client.blob(origin)
