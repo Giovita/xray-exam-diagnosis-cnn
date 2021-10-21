@@ -27,12 +27,12 @@ if __name__ == "__main__":
     img_size = (224, 224)
     job_type = "binary"
     split = (0.65, 0.175, 0.175)  # Train Val Test
-    data_filter = 0.3
+    data_filter = 0.45
     cnn_geometry = (1024, 512, 256)
     dropout_layer = False
-    dropout_rate = 0.2
+    dropout_rate = 0.4
     batch_size = 32
-    epochs = 40
+    epochs = 30
     # learning_rate = 0.0005
 
     print(f"Start building and training CNN for {job_type}.")
@@ -111,13 +111,14 @@ if __name__ == "__main__":
     model.mlflow_log_param("dropouts", dropout_layer)
     model.mlflow_log_param("dropouts rate", dropout_rate)
     model.mlflow_log_param("batch size", batch_size)
+    model.mlflow_log_param("target epochs", epochs)
 
     print("Instanciated Trainer()")
 
     model.build_cnn(
         input_shape=img_size,
         # output_shape=len(classes),
-        dense_layer_geometry=(1024, 512, 256),  # Hyperparam
+        dense_layer_geometry= cnn_geometry,  # Hyperparam
         dropout_layers=dropout_layer,  # Hyperparam
         dropout_rate=dropout_rate,  # Hyperparam
     )

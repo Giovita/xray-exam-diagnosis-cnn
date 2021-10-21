@@ -271,7 +271,7 @@ def make_dataset(
         return image
 
     def configure_for_performance(ds):
-        ds = ds.shuffle(buffer_size=3000)
+        ds = ds.shuffle(buffer_size=1000)
         ds = ds.batch(batch_size)
         if not test_set:
             ds = ds.repeat()
