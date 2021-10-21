@@ -197,7 +197,7 @@ def build_generator(
     test_set=False,
     data_augment=False,
     **kwargs,
-):
+    ):
 
     """
     Loads X_data, images, from a directory with files, and assings labels
