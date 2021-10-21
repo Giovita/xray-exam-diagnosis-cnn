@@ -1,4 +1,4 @@
-from http.client import parse_headers
+# from http.client import parse_headers
 import os
 from datetime import datetime
 
@@ -12,12 +12,16 @@ from tensorflow.keras import applications
 #     "InceptionV3": applications.InceptionV3,
 # }
 
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import (
     Dense,
     Dropout,
     Flatten,
 )
+from tensorflow.keras.layers.experimental.preprocessing import Rescaling
+# import tensorflow.keras.preprocessing.image as img
+# # from tensorflow.keras.experimental
+# import tensorflow.keras.layers.Rescaling as Rescaling
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import (
     ModelCheckpoint,
@@ -25,12 +29,12 @@ from tensorflow.keras.callbacks import (
     ReduceLROnPlateau,
 )
 from tensorflow.keras.metrics import (
-    Accuracy,
     Precision,
     Recall,
     CategoricalAccuracy,
     AUC,
 )
+
 # import PIL.Image
 # from tensorflow import image
 
@@ -47,10 +51,13 @@ from xray.params import (
     PATH_TO_LOCAL_MODEL,
     CHECKPOINT_FOLDER,
 )
-    # GCP_IMAGE_BUCKET,
-    # MODEL_VERSION,
+
+# GCP_IMAGE_BUCKET,
+# MODEL_VERSION,
 
 from google.cloud import storage
+
+from pathlib import Path
 
 
 class Trainer:
@@ -102,6 +109,8 @@ class Trainer:
         self.save_local_dir = os.path.join(self.model_dir)
         self.save_gcp_dir = os.path.join(BUCKET_NAME, self.model_dir)
 
+        self.data_augment = None
+
     def build_cnn(
         self,  # Provides train and val generators
         input_shape,
@@ -137,13 +146,18 @@ class Trainer:
         else:
             self.input_shape = input_shape
 
-        base_model = applications.VGG19(
-            include_top=False, weights="imagenet", input_shape=self.input_shape
+        base_model = applications.VGG16(
+        # base_model = applications.mobilenet.MobileNet(
+            include_top=False, weights='imagenet', input_shape=self.input_shape
         )
         base_model.trainable = False
 
+        self.base_arch = base_model.name
+
+
         # Build final layers
         model = Sequential()
+        model.add(Rescaling(1.0 / 255))  # Rescaling(1./255, input_shape=input_shape)
         model.add(base_model)
         model.add(Flatten())
 
@@ -161,7 +175,7 @@ class Trainer:
             "multilabel": "sigmoid",
         }
 
-        if self.category_type == 'binary':
+        if self.category_type == "binary":
             output_shape = 1
 
         if not output_activation:  # and self.category_type == "binary":
@@ -173,7 +187,7 @@ class Trainer:
         model.add(Dense(output_shape, activation=output_activation))
 
         # Set instance attributes
-        self.base_arch = model.layers[0].name
+
         self.output_activation = output_activation
         self.pipeline = model
         # self.model_dir = f"{self.base_arch}/{self.category_type}"
@@ -196,10 +210,10 @@ class Trainer:
 
         if not metrics:
             if self.category_type == "binary":
-                metrics = ['accuracy', Precision(), Recall(), AUC()]
+                metrics = ["accuracy", Precision(), Recall(), AUC()]
             else:
                 metrics = [
-                    'accuracy',
+                    "accuracy",
                     Precision(),
                     Recall(),
                     AUC(),
@@ -225,10 +239,12 @@ class Trainer:
             self.base_arch, str(datetime.now()).replace(" ", "_")
         )
 
+        self.mlflow_log_param("filename", self.filename)
+
         params = {
             "base_arch": self.base_arch,
             "dense_layer_num": self.dense_layer_num,
-            'prediction_type': self.category_type,
+            "prediction_type": self.category_type,
             "output_activation": self.output_activation,
             "input_shape": self.input_shape,
             "dense_layer_geom": self.dense_layer_geom,
@@ -265,8 +281,7 @@ class Trainer:
         #     )
         #     print(f"Saved model in {self.model_dir}/{self.experiment_name}")
         # else:
-        self.checkpoint_path = os.path.join(self.model_dir,
-                                            'checkpoints')
+        self.checkpoint_path = os.path.join(self.model_dir, "checkpoints")
         # self.pipeline.load_weights(os.path.join(self.checkpoint_path, 'best_weights.hdf5'))
 
         checkpoint = ModelCheckpoint(
@@ -307,7 +322,7 @@ class Trainer:
 
     def evaluate_model(self, gen_test, steps=None, return_dict=True, **kwargs):
         metrics = self.pipeline.evaluate(
-            gen_test, steps = steps, return_dict=return_dict, **kwargs
+            gen_test, steps=steps, return_dict=return_dict, **kwargs
         )
         """
         When providing an infinite dataset, you must specify the number of steps
@@ -358,7 +373,9 @@ class Trainer:
 
         # self.model_dir = os.path.join(os.path.join(os.getcwd(), model_folder))
         # self.filename = f"{self.experiment_name}.h5"
-        self.pipeline.save(os.path.join(self.model_dir, self.filename), save_format='h5')
+        self.pipeline.save(
+            os.path.join(self.model_dir, f"{self.filename}.h5"), save_format="h5"
+        )
 
     def upload_model_to_gcp(self, rm=True):
         """Upload current model to gcp location"""
@@ -369,10 +386,9 @@ class Trainer:
 
         local_path = os.path.join(os.getcwd(), self.model_dir, self.filename)
 
-        blob.upload_from_filename(local_path)
+        blob.upload_from_filename(f"{local_path}.h5")
 
         # if os.path.isfile(local_path):
-
 
         print(
             f"=> {self.filename} uploaded to bucket {BUCKET_NAME} inside {GCP_MODEL_STORAGE_LOCATION}/{self.model_dir}"
@@ -380,6 +396,36 @@ class Trainer:
 
         if rm:
             os.remove(os.path.join(self.model_dir, self.filename))
+
+    def load_model_from_gcp(self, origin_model_dir, filename, dest_dir, **kwargs):
+        """
+        Upload current model to gcp location
+
+        -model_dir: route from root (BUCKET) upto base geometry.
+            So for instance, `model_dir = 'models/multilabelbase_geometry/' or ''models/binarybase_geometry/'
+        - filename = used as 'date_time of model compiling'
+        - dest_dir: relative path of destination folder.
+        """
+
+        client = storage.Client().bucket(BUCKET_NAME)
+
+        origin = os.path.join(origin_model_dir, filename)
+        blob = client.blob(origin)
+
+        Path(dest_dir).mkdir(parents=True, exist_ok=True)
+
+        filepath = os.path.join(os.getcwd(), dest_dir, filename)
+
+        if filename.split(".")[-1] != "h5":
+            blob.download_to_filename(f"{filepath}.h5")
+        else:
+            blob.download_to_filename(filepath)
+
+        # if os.path.isfile(local_path):
+        if filename.split(".")[-1] != "h5":
+            self.pipeline = load_model(f"{filepath}.h5")
+        else:
+            self.pipeline = load_model(f"{filepath}.h5")
 
     def save_model(self):
         """method that saves the model into a .joblib file and uploads it on Google Storage /models folder
@@ -394,12 +440,12 @@ class Trainer:
         self.upload_model_to_gcp(rm=False)
         print(f"uploaded model to gcp cloud storage under \n => {BUCKET_NAME}")
 
-    def load_model(self, model_folder: str = PATH_TO_LOCAL_MODEL):
+    def load_model(self, model_folder: str = PATH_TO_LOCAL_MODEL, **kwargs):
         """Save model in tf.keras default model"""
         # if not os.path.join(os.getcwd(), model_folder):
         #     os.mkdir(model_folder)
 
-        self.pipeline.load_model(os.path.join(self.model_dir, self.filename))
+        self.pipeline.load_model(os.path.join(self.model_dir, self.filename), **kwargs)
 
     # MLFlow methods
 
@@ -544,7 +590,9 @@ if __name__ == "__main__":
     # model.save_locally()
 
     print("Evaluating performance")
-    results = model.evaluate_model(ds_test,) #steps=ds_test)
+    results = model.evaluate_model(
+        ds_test,
+    )  # steps=ds_test)
     # print(f"Results: {results.histoy}")
 
     # model.save_model()

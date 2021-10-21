@@ -12,7 +12,6 @@ if __name__ == "__main__":
     original_model_dir = "models/binary/vgg16/"
     filename_model = "date_time"  # real filename
     dest_dir = "models/binary/vgg16/"  # dest_dir: relative path of destination folder.
-
     """
     Example
         model_dir = 'models/binary/vgg16/'
@@ -22,18 +21,18 @@ if __name__ == "__main__":
     """
 
     # Some Parameters
-    load_previous = False  # If True, modify at the top the loading parameters
+    load_previous = False  # If True, modify at tzhe top the loading parameters
     # Some Parameters
     filename = "xray_df.csv"
     img_size = (224, 224)
     job_type = "multilabel"
     split = (0.65, 0.175, 0.175)  # Train Val Test
-    data_filter = 0.75
-    cnn_geometry = (1024, 512, 256, )
+    data_filter = 0.01
+    cnn_geometry = (512,)
     dropout_layer = False
-    dropout_rate = 0.4
+    dropout_rate = 0.2
     batch_size = 32
-    epochs = 30
+    epochs = 1
     # learning_rate = 0.0001
 
     print(f"Start building and training CNN for {job_type}.")
@@ -53,14 +52,11 @@ if __name__ == "__main__":
 
     # Small data ELT
     df["path"] = df.path.map(
-        lambda x: "/".join(x.split("/")[-3:])
-    )  # Relative paths to file loc
-    df.path = df.path.map(
-        lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
-    )  # Absolute path in GCP
+        lambda x: "/".join(x.split("/")[-3:]))  # Relative paths to file loc
+    df.path = df.path.map(lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
+                          )  # Absolute path in GCP
     df["labels"] = df["Fixed_Labels"].map(
-        lambda x: x.split("|")
-    )  # 'cat_col' not working
+        lambda x: x.split("|"))  # 'cat_col' not working
 
     # OneHot Encode multilabel
     mlb = MultiLabelBinarizer().fit(df.labels)
@@ -75,14 +71,17 @@ if __name__ == "__main__":
     print("Finished preprocessing")
 
     # Train, val, test split
-    df_train, df_val, df_test = data.split_df(
-        df, "Patient ID", split, total_filter=data_filter
-    )
+    df_train, df_val, df_test = data.split_df(df,
+                                              "Patient ID",
+                                              split,
+                                              total_filter=data_filter)
     df_train = df_train.path.to_list()
     df_val = df_val.path.to_list()
     df_test = df_test.path.to_list()
 
-    print(f"Finished reducing and splitting Data. Kept {len(df)*data_filter} records")
+    print(
+        f"Finished reducing and splitting Data. Kept {len(df)*data_filter} records"
+    )
 
     # Make tf.data.Dataset
     ds_train = data.make_dataset(path_to_png, 32, df_train, y)
@@ -107,13 +106,13 @@ if __name__ == "__main__":
     model.mlflow_log_param("dropouts", dropout_layer)
     model.mlflow_log_param("dropouts rate", dropout_rate)
     model.mlflow_log_param("batch size", batch_size)
-    model.mlflow_log_param("target epochs", epochs)
+
     print("Instanciated Trainer()")
 
     model.build_cnn(
         input_shape=img_size,
         output_shape=len(classes),
-        dense_layer_geometry= cnn_geometry,  # Hyperparam
+        dense_layer_geometry=cnn_geometry,  # Hyperparam
         dropout_layers=dropout_layer,  # Hyperparam
         dropout_rate=dropout_rate,  # Hyperparam
     )
@@ -145,9 +144,7 @@ if __name__ == "__main__":
     print(f"Finished training with {history.history} results.")
 
     print("Evaluating performance")
-    results = model.evaluate_model(
-        ds_test,
-    )  # steps=ds_test)
+    results = model.evaluate_model(ds_test, )  # steps=ds_test)
 
     model.save_model()
 

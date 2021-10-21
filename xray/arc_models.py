@@ -155,11 +155,11 @@ if __name__ == "__main__":
 
 
 #### Legacy Code
-    # xray_df = load_and_process(data_folder, archivo, cols)
+# xray_df = load_and_process(data_folder, archivo, cols)
 
-    # #  Size
-    # img_size = (128, 128)
-    # input_shape = img_size + (3,)
+# #  Size
+# img_size = (128, 128)
+# input_shape = img_size + (3,)
 
-    # #  epocas
-    # epochs = 30
+# #  epocas
+# epochs = 30
