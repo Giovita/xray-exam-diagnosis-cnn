@@ -8,18 +8,32 @@ from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder
 
 if __name__ == "__main__":
 
+    # data loading params for new model
+    original_model_dir = "models/binary/vgg16/"
+    filename_model = "date_time"  # real filename
+    dest_dir = "models/binary/vgg16/"  # dest_dir: relative path of destination folder.
+
+    """
+    Example
+        model_dir = 'models/binary/vgg16/'
+    filename = '2021-10-20_03:44:11.263701'
+    dest_dir = os.path.join(os.getcwd(), model_dir)
+
+    """
+
     # Some Parameters
+    load_previous = False  # If True, modify at the top the loading parameters
     filename = "xray_df.csv"
     img_size = (224, 224)
     job_type = "binary"
     split = (0.65, 0.175, 0.175)  # Train Val Test
-    data_filter = 0.35
-    cnn_geometry = (2024, 512, 256, 256)
+    data_filter = 0.45
+    cnn_geometry = (1024, 512, 256)
     dropout_layer = False
-    dropout_rate = 0.2
+    dropout_rate = 0.4
     batch_size = 32
-    epochs = 20
-    # learning_rate = 0.001
+    epochs = 30
+    # learning_rate = 0.0005
 
     print(f"Start building and training CNN for {job_type}.")
 
@@ -38,12 +52,14 @@ if __name__ == "__main__":
 
     # Small data ELT
     df["path"] = df.path.map(
-        lambda x: "/".join(x.split("/")[-3:]))  # Relative paths to file loc
-    df.path = df.path.map(lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
-                          )  # Absolute path in GCP
+        lambda x: "/".join(x.split("/")[-3:])
+    )  # Relative paths to file loc
+    df.path = df.path.map(
+        lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
+    )  # Absolute path in GCP
     # df["labels"] = df["Fixed_Labels"].map(
     #     lambda x: x.split("|"))  # 'cat_col' not working
-    df['labels'] = df['Enfermo']
+    df["labels"] = df["Enfermo"]
 
     # OneHot Encode multilabel
     # mlb = MultiLabelBinarizer().fit(df.labels)
@@ -58,17 +74,14 @@ if __name__ == "__main__":
     print("Finished preprocessing")
 
     # Train, val, test split
-    df_train, df_val, df_test = data.split_df(df,
-                                              "Patient ID",
-                                              split,
-                                              total_filter=data_filter)
+    df_train, df_val, df_test = data.split_df(
+        df, "Patient ID", split, total_filter=data_filter
+    )
     df_train = df_train.path.to_list()
     df_val = df_val.path.to_list()
     df_test = df_test.path.to_list()
 
-    print(
-        f"Finished reducing and splitting Data. Kept {len(df)*data_filter} records"
-    )
+    print(f"Finished reducing and splitting Data. Kept {len(df)*data_filter} records")
 
     # Make tf.data.Dataset
     ds_train = data.make_dataset(path_to_png, 32, df_train, y)
@@ -83,24 +96,31 @@ if __name__ == "__main__":
     # Trainer()
     model = trainer.Trainer(ds_train, ds_val, job_type)
 
+    if load_previous:
+        model.pipeline = model.load_model_from_gcp(
+            original_model_dir, filename_model, dest_dir
+        )
+
     # Store trainer split for mlflow params
     model.data_split = data_filter
-    model.mlflow_log_param('dataset_filtered', model.data_split)
+    model.mlflow_log_param("dataset_filtered", model.data_split)
     model.train_obs = len(df_train)
-    model.mlflow_log_param('total_imgs', model.train_obs)
+    model.mlflow_log_param("total_imgs", model.train_obs)
     model.train_val_test = split
-    model.mlflow_log_param('train_val_test', model.train_val_test)
-    model.mlflow_log_param('dropouts', dropout_layer)
-    model.mlflow_log_param('dropouts rate', dropout_rate)
+    model.mlflow_log_param("train_val_test", model.train_val_test)
+    model.mlflow_log_param("dropouts", dropout_layer)
+    model.mlflow_log_param("dropouts rate", dropout_rate)
+    model.mlflow_log_param("batch size", batch_size)
+    model.mlflow_log_param("target epochs", epochs)
 
     print("Instanciated Trainer()")
 
     model.build_cnn(
         input_shape=img_size,
         # output_shape=len(classes),
-        dense_layer_geometry=(1024, 512, 256),  # Hyperparam
+        dense_layer_geometry= cnn_geometry,  # Hyperparam
         dropout_layers=dropout_layer,  # Hyperparam
-        dropout_rate=dropout_rate, # Hyperparam
+        dropout_rate=dropout_rate,  # Hyperparam
     )
 
     print(f"Built CNN with {model.base_arch} base model.")
@@ -118,7 +138,6 @@ if __name__ == "__main__":
     test_images = len(df_test)
     test_steps = math.ceil(test_images / batch_size)
 
-
     print(f"Start model fitting for {epochs} epochs")
 
     history = model.fit_model(
@@ -131,7 +150,9 @@ if __name__ == "__main__":
     print(f"Finished training with {history.history} results.")
 
     print("Evaluating performance")
-    results = model.evaluate_model(ds_test, )  #steps=ds_test)
+    results = model.evaluate_model(
+        ds_test,
+    )  # steps=ds_test)
 
     model.save_model()
 
