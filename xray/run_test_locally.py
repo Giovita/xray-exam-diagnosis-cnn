@@ -4,15 +4,14 @@ from glob import glob
 
 import pandas as pd
 from xray import data, params, trainer
-from sklearn.preprocessing import MultiLabelBinarizer, LabelEncoder
+from sklearn.preprocessing import MultiLabelBinarizer
 
 if __name__ == "__main__":
 
-    # data loading params for new model
+    # data loading praams for new model
     original_model_dir = "models/binary/vgg16/"
-    filename = "date_time"  # real filename
+    filename_model = "date_time"  # real filename
     dest_dir = "models/binary/vgg16/"  # dest_dir: relative path of destination folder.
-
     """
     Example
         model_dir = 'models/binary/vgg16/'
@@ -22,18 +21,19 @@ if __name__ == "__main__":
     """
 
     # Some Parameters
-    load_previous = False  # If True, modify at the top the loading parameters
+    load_previous = False  # If True, modify at tzhe top the loading parameters
+    # Some Parameters
     filename = "xray_df.csv"
     img_size = (224, 224)
-    job_type = "binary"
+    job_type = "multilabel"
     split = (0.65, 0.175, 0.175)  # Train Val Test
     data_filter = 0.01
-    cnn_geometry = 512
+    cnn_geometry = (512,)
     dropout_layer = False
     dropout_rate = 0.2
-    batch_size = 64
+    batch_size = 32
     epochs = 1
-    # learning_rate = 0.001
+    # learning_rate = 0.0001
 
     print(f"Start building and training CNN for {job_type}.")
 
@@ -46,42 +46,42 @@ if __name__ == "__main__":
     print("Loaded Training Data")
 
     # Train multilabel for sick people. Modify if binary class
-    # df = df[df["Fixed_Labels"] != "No Finding"]
+    df = df[df["Fixed_Labels"] != "No Finding"]
 
     print(f"Total {len(df)} files loaded")
 
     # Small data ELT
     df["path"] = df.path.map(
-        lambda x: "/".join(x.split("/")[-3:])
-    )  # Relative paths to file loc
-    df.path = df.path.map(
-        lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
-    )  # Absolute path in GCP
-    # df["labels"] = df["Fixed_Labels"].map(
-    #     lambda x: x.split("|"))  # 'cat_col' not working
-    df["labels"] = df["Enfermo"]
+        lambda x: "/".join(x.split("/")[-3:]))  # Relative paths to file loc
+    df.path = df.path.map(lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
+                          )  # Absolute path in GCP
+    df["labels"] = df["Fixed_Labels"].map(
+        lambda x: x.split("|"))  # 'cat_col' not working
 
     # OneHot Encode multilabel
-    # mlb = MultiLabelBinarizer().fit(df.labels)
-    # y = mlb.transform(df.labels).astype("int16")
-    # y = y.tolist()
-
-    # Binary encode binary labels
-    mlb = LabelEncoder().fit(df.labels)
+    mlb = MultiLabelBinarizer().fit(df.labels)
     y = mlb.transform(df.labels).astype("int16")
     y = y.tolist()
+
+    # Binary encode binary labels
+    # mlb = LabelBinarizer().fit(df.labels)
+    # y = mlb.transform(df.labels).astype("int16")
+    # y = y.tolist()
 
     print("Finished preprocessing")
 
     # Train, val, test split
-    df_train, df_val, df_test = data.split_df(
-        df, "Patient ID", split, total_filter=data_filter
-    )
+    df_train, df_val, df_test = data.split_df(df,
+                                              "Patient ID",
+                                              split,
+                                              total_filter=data_filter)
     df_train = df_train.path.to_list()
     df_val = df_val.path.to_list()
     df_test = df_test.path.to_list()
 
-    print(f"Finished reducing and splitting Data. Kept {len(df)*data_filter} records")
+    print(
+        f"Finished reducing and splitting Data. Kept {len(df)*data_filter} records"
+    )
 
     # Make tf.data.Dataset
     ds_train = data.make_dataset(path_to_png, 32, df_train, y)
@@ -95,11 +95,6 @@ if __name__ == "__main__":
 
     # Trainer()
     model = trainer.Trainer(ds_train, ds_val, job_type)
-
-    if load_previous:
-        model.pipeline = model.load_model_from_gcp(
-            original_model_dir, filename, dest_dir
-        )
 
     # Store trainer split for mlflow params
     model.data_split = data_filter
@@ -116,8 +111,8 @@ if __name__ == "__main__":
 
     model.build_cnn(
         input_shape=img_size,
-        # output_shape=len(classes),
-        dense_layer_geometry=(1024, 512, 256),  # Hyperparam
+        output_shape=len(classes),
+        dense_layer_geometry=cnn_geometry,  # Hyperparam
         dropout_layers=dropout_layer,  # Hyperparam
         dropout_rate=dropout_rate,  # Hyperparam
     )
@@ -149,9 +144,7 @@ if __name__ == "__main__":
     print(f"Finished training with {history.history} results.")
 
     print("Evaluating performance")
-    results = model.evaluate_model(
-        ds_test,
-    )  # steps=ds_test)
+    results = model.evaluate_model(ds_test, )  # steps=ds_test)
 
     model.save_model()
 

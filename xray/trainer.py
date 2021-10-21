@@ -19,7 +19,8 @@ from tensorflow.keras.layers import (
     Flatten,
 )
 from tensorflow.keras.layers.experimental.preprocessing import Rescaling
-
+# import tensorflow.keras.preprocessing.image as img
+# # from tensorflow.keras.experimental
 # import tensorflow.keras.layers.Rescaling as Rescaling
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import (
@@ -108,6 +109,8 @@ class Trainer:
         self.save_local_dir = os.path.join(self.model_dir)
         self.save_gcp_dir = os.path.join(BUCKET_NAME, self.model_dir)
 
+        self.data_augment = None
+
     def build_cnn(
         self,  # Provides train and val generators
         input_shape,
@@ -143,10 +146,14 @@ class Trainer:
         else:
             self.input_shape = input_shape
 
-        base_model = applications.VGG19(
+        base_model = applications.VGG16(
+        # base_model = applications.mobilenet.MobileNet(
             include_top=False, weights='imagenet', input_shape=self.input_shape
         )
         base_model.trainable = False
+
+        self.base_arch = base_model.name
+
 
         # Build final layers
         model = Sequential()
@@ -180,7 +187,7 @@ class Trainer:
         model.add(Dense(output_shape, activation=output_activation))
 
         # Set instance attributes
-        self.base_arch = model.layers[1].name
+
         self.output_activation = output_activation
         self.pipeline = model
         # self.model_dir = f"{self.base_arch}/{self.category_type}"
