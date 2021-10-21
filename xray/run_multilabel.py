@@ -29,7 +29,7 @@ if __name__ == "__main__":
     job_type = "multilabel"
     split = (0.65, 0.175, 0.175)  # Train Val Test
     data_filter = 0.75
-    cnn_geometry = (1024, 512, 256, )
+    cnn_geometry = (1024* 8,)  #, 512, 256, )
     dropout_layer = False
     dropout_rate = 0.4
     batch_size = 32

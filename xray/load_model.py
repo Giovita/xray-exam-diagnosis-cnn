@@ -53,5 +53,5 @@ if __name__ == "__main__":
     filename = "2021-10-20_03:44:11.263701"
     dest_dir = os.path.join(os.getcwd(), model_dir)
 
-model = load_model_from_gcp(model_dir, filename, dest_dir)
-model.summary()
+    model = load_model_from_gcp(model_dir, filename, dest_dir)
+    model.summary()

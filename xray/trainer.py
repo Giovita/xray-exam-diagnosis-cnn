@@ -272,7 +272,7 @@ class Trainer:
     ):
 
         es = EarlyStopping(
-            monitor="val_loss", mode="min", patience=patience, restore_best_weights=True
+            monitor="val_recall", mode="min", patience=patience, restore_best_weights=True
         )
 
         # if not self.checkpoint_path:

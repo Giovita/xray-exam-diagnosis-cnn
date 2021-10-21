@@ -31,7 +31,7 @@ if __name__ == "__main__":
     cnn_geometry = (512,)
     dropout_layer = False
     dropout_rate = 0.2
-    batch_size = 32
+    batch_size = 64
     epochs = 1
     # learning_rate = 0.0001
 
