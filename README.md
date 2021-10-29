@@ -1,77 +1,16 @@
 # Data analysis
-- Document here the project: xray-exam-diagnosis-cnn
-- Description: Project Description
-- Data Source:
-- Type of analysis:
 
-Please document the project the better you can.
+Automatic diagnosis of Chest X-Ray images through Convolutional Neural Networks. 
 
-# Startup the project
+We aim to identify one (or more) thorax diseases from a posible 14 classes, automatically by just uploading the image. 
 
-The initial setup.
+Developed using Tensorflow toolkit, as the final project from LeWagon's [Data-Science bootcamp](https://www.lewagon.com/data-science-course/full-time) in Buenos Aires.
 
-Create virtualenv and install the project:
-```bash
-sudo apt-get install virtualenv python-pip python-dev
-deactivate; virtualenv ~/venv ; source ~/venv/bin/activate ;\
-    pip install pip -U; pip install -r requirements.txt
-```
+Currently under development, trying new architectures to achieve best results, and deploying to GCP via Docker container. 
 
-Unittest test:
-```bash
-make clean install test
-```
+Dataset provided by [NIH](www.nih.gov) and downloaded from [Kaggle](https://www.kaggle.com/nih-chest-xrays/data) under COO Licence. 
 
-Check for xray-exam-diagnosis-cnn in gitlab.com/{group}.
-If your project is not set please add it:
 
-- Create a new project on `gitlab.com/{group}/xray-exam-diagnosis-cnn`
-- Then populate it:
-
-```bash
-##   e.g. if group is "{group}" and project_name is "xray-exam-diagnosis-cnn"
-git remote add origin git@github.com:{group}/xray-exam-diagnosis-cnn.git
-git push -u origin master
-git push -u origin --tags
-```
-
-Functionnal test with a script:
-
-```bash
-cd
-mkdir tmp
-cd tmp
-xray-exam-diagnosis-cnn-run
-```
-
-# Install
-
-Go to `https://github.com/{group}/xray-exam-diagnosis-cnn` to see the project, manage issues,
-setup you ssh public key, ...
-
-Create a python3 virtualenv and activate it:
-
-```bash
-sudo apt-get install virtualenv python-pip python-dev
-deactivate; virtualenv -ppython3 ~/venv ; source ~/venv/bin/activate
-```
-
-Clone the project and install it:
-
-```bash
-git clone git@github.com:{group}/xray-exam-diagnosis-cnn.git
-cd xray-exam-diagnosis-cnn
-pip install -r requirements.txt
-make clean install test                # install and test
-```
-Functionnal test with a script:
-
-```bash
-cd
-mkdir tmp
-cd tmp
-xray-exam-diagnosis-cnn-run
-```
 
 
 ## Creators
@@ -79,7 +18,7 @@ xray-exam-diagnosis-cnn-run
 jhon.poma@unmsm.edu.pe
 
 **Santiago Giovagnoli**
-santigiova@gmail.com
+smgiovagnoli@gmail.com
 
 **Santiago "Tiago" Restrepo**
 tiago.restrepoe@gmail.com
