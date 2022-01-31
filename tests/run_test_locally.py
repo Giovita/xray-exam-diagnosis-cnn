@@ -15,7 +15,7 @@ if __name__ == "__main__":
     dest_dir = "models/binary/vgg16/"  # dest_dir: relative path of destination folder.
     """
     Example
-        model_dir = 'models/binary/vgg16/'
+    model_dir = 'models/binary/vgg16/'
     filename = '2021-10-20_03:44:11.263701'
     dest_dir = os.path.join(os.getcwd(), model_dir)
 

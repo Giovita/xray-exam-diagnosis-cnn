@@ -1,8 +1,11 @@
 import os
+import random
+from glob import glob
 from itertools import chain
 
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from google.cloud import storage
 from google.cloud.storage import bucket
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -11,7 +14,6 @@ from xray.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, PROJECT_ID
 
 
 def get_data(labels_file: str, source="csv"):
-
     """
     Loads raw csv into pd.DataFrame from multiple sources.
     Souces can be: '.csv', 'gcp', other
@@ -165,7 +167,6 @@ def build_generator(
     data_augment=False,
     **kwargs,
 ):
-
     """
     Loads X_data, images, from a directory with files, and assings labels
     according to the DF in labels_path.
@@ -208,12 +209,6 @@ def build_generator(
     return generator
 
 
-import random
-from glob import glob
-
-import tensorflow as tf
-
-
 def make_dataset(
     path,
     batch_size,
@@ -253,7 +248,7 @@ def make_dataset(
             flags=["refs_ok", "c_index"],
         )
         random.shuffle(filenames)
-        for file in it:
+        for _ in it:
             labels = [classes.index(name.split("/")[-2]) for name in filenames]
     else:
         filenames = filenames
@@ -275,21 +270,3 @@ def get_data_from_gcp(filename: str, optimize=False, **kwargs):
     path = os.path.join("gs://", BUCKET_NAME, filename)
     df = pd.read_csv(path)
     return df
-
-
-# if __name__ == "__main__":
-# """Test script to test data utilities. """
-
-# import os
-
-# path_to_csv = "../../raw_data/full-dataset/"
-# csv_file = "xray_df.csv"
-# df = get_data(os.path.join(path_to_csv, csv_file))
-# ds_train, ds_val, ds_test = split_df(dataset=df,
-#                                           column_to_filter_by='Patient ID',
-#                                           train_val_test=(0.65, 0.15,
-#                                                           0.15))
-
-# print('train :', ds_train.shape)
-# print('val :', ds_val.shape)
-# print('test :', ds_test.shape)

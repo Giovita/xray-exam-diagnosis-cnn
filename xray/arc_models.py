@@ -1,4 +1,3 @@
-import tensorflow.keras
 from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import Dense, Dropout, Flatten
@@ -6,14 +5,7 @@ from tensorflow.keras.metrics import Accuracy, Precision, Recall
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 
-# aca debe llamar otra funcion que genera el path para cada imagen
 
-
-# aca debe llamar otra funcion para la augmentation y el sample con el que vamos a entrenar
-# val_gen debe ser generador
-
-
-# llamar al modelo  y entrenar
 def build_model(
     train_gen,
     val_gen,

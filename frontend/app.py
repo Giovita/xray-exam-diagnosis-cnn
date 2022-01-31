@@ -47,8 +47,6 @@ if file:
         result = r.json()
         print(result)
 
-        if not result:
-            st.markdown("chau")
         if len(result) > 0 and not result["diagnostic"]:
             st.markdown("### 🩺  The patient is probably not sick ")
         else:

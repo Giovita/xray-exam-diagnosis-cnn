@@ -9,6 +9,8 @@ pandas
 scikit-learn
 tensorflow
 pillow
+uvicorn
+fastapi
 
 # tests/linter
 # black ?

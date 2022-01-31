@@ -7,7 +7,7 @@ raw_data/
 **/__pycache__/
 .env
 *.hdf5
-
 models/
-
 .pytest_cache
+.python-version
+data/
