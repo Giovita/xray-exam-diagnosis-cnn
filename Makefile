@@ -62,10 +62,10 @@ pypi:
 # LOCAL_PATH=PATH_TO_FILE_train_1k.csv
 
 # project id
-PROJECT_ID=xray-cnn-329114
+PROJECT_ID=xray-diagnosis-339823
 
 # bucket name
-BUCKET_NAME=images-xray-lewagon
+BUCKET_NAME=images-xray-lewagon-02
 
 # bucket directory in which to store the uploaded file (we choose to name this data as a convention)
 BUCKET_FOLDER=data
@@ -167,4 +167,4 @@ gcp_submit_training_both:
 #      Prediction API
 # ----------------------------------
 run_api:
-	uvicorn api.fast:app --reload  # load web server with code autoreload
+	uvicorn api.api:app --reload  # load web server with code autoreload

@@ -6,11 +6,11 @@
 
 # PROJECT_ID = 'wagon-bootcamp-323816'  # Test for Santiago
 
-PROJECT_ID = "xray-cnn-329114"
+PROJECT_ID = "xray-diagnosis-339823"
 
-BUCKET_NAME = "images-xray-lewagon"  # 'xray-lewagon-testupload'
+BUCKET_NAME = "images-xray-lewagon-02"  # 'xray-lewagon-testupload'
 
-REGION = "SOUTHAMERICA-EAST1"
+REGION = "es-west1"
 
 BUCKET_TRAIN_DATA_PATH = ""  #'images/'  Changed for testing
 

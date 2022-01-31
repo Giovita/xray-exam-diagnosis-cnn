@@ -3,8 +3,9 @@ import os
 from glob import glob
 
 import pandas as pd
-from xray import data, params, trainer
 from sklearn.preprocessing import MultiLabelBinarizer
+
+from xray import data, params, trainer
 
 if __name__ == "__main__":
 
@@ -51,12 +52,9 @@ if __name__ == "__main__":
     print(f"Total {len(df)} files loaded")
 
     # Small data ELT
-    df["path"] = df.path.map(
-        lambda x: "/".join(x.split("/")[-3:]))  # Relative paths to file loc
-    df.path = df.path.map(lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
-                          )  # Absolute path in GCP
-    df["labels"] = df["Fixed_Labels"].map(
-        lambda x: x.split("|"))  # 'cat_col' not working
+    df["path"] = df.path.map(lambda x: "/".join(x.split("/")[-3:]))  # Relative paths to file loc
+    df.path = df.path.map(lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x))  # Absolute path in GCP
+    df["labels"] = df["Fixed_Labels"].map(lambda x: x.split("|"))  # 'cat_col' not working
 
     # OneHot Encode multilabel
     mlb = MultiLabelBinarizer().fit(df.labels)
@@ -71,17 +69,12 @@ if __name__ == "__main__":
     print("Finished preprocessing")
 
     # Train, val, test split
-    df_train, df_val, df_test = data.split_df(df,
-                                              "Patient ID",
-                                              split,
-                                              total_filter=data_filter)
+    df_train, df_val, df_test = data.split_df(df, "Patient ID", split, total_filter=data_filter)
     df_train = df_train.path.to_list()
     df_val = df_val.path.to_list()
     df_test = df_test.path.to_list()
 
-    print(
-        f"Finished reducing and splitting Data. Kept {len(df)*data_filter} records"
-    )
+    print(f"Finished reducing and splitting Data. Kept {len(df)*data_filter} records")
 
     # Make tf.data.Dataset
     ds_train = data.make_dataset(path_to_png, 32, df_train, y)
@@ -144,7 +137,9 @@ if __name__ == "__main__":
     print(f"Finished training with {history.history} results.")
 
     print("Evaluating performance")
-    results = model.evaluate_model(ds_test, )  # steps=ds_test)
+    results = model.evaluate_model(
+        ds_test,
+    )  # steps=ds_test)
 
     model.save_model()
 

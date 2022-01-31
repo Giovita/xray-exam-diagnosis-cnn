@@ -3,11 +3,12 @@ import os
 from glob import glob
 
 import pandas as pd
-from xray import data, params, trainer
 from sklearn.preprocessing import MultiLabelBinarizer
 
-if __name__ == "__main__":
+from xray import data, params, trainer
 
+
+def run_multilabel():
     # data loading praams for new model
     original_model_dir = "models/binary/vgg16/"
     filename_model = "date_time"  # real filename
@@ -18,7 +19,6 @@ if __name__ == "__main__":
         model_dir = 'models/binary/vgg16/'
     filename = '2021-10-20_03:44:11.263701'
     dest_dir = os.path.join(os.getcwd(), model_dir)
-
     """
 
     # Some Parameters
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     job_type = "multilabel"
     split = (0.65, 0.175, 0.175)  # Train Val Test
     data_filter = 0.75
-    cnn_geometry = (1024* 8,)  #, 512, 256, )
+    cnn_geometry = (1024 * 8,)  # , 512, 256, )
     dropout_layer = False
     dropout_rate = 0.4
     batch_size = 32
@@ -52,15 +52,9 @@ if __name__ == "__main__":
     print(f"Total {len(df)} files loaded")
 
     # Small data ELT
-    df["path"] = df.path.map(
-        lambda x: "/".join(x.split("/")[-3:])
-    )  # Relative paths to file loc
-    df.path = df.path.map(
-        lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
-    )  # Absolute path in GCP
-    df["labels"] = df["Fixed_Labels"].map(
-        lambda x: x.split("|")
-    )  # 'cat_col' not working
+    df["path"] = df.path.map(lambda x: "/".join(x.split("/")[-3:]))  # Relative paths to file loc
+    df.path = df.path.map(lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x))  # Absolute path in GCP
+    df["labels"] = df["Fixed_Labels"].map(lambda x: x.split("|"))  # 'cat_col' not working
 
     # OneHot Encode multilabel
     mlb = MultiLabelBinarizer().fit(df.labels)
@@ -75,9 +69,7 @@ if __name__ == "__main__":
     print("Finished preprocessing")
 
     # Train, val, test split
-    df_train, df_val, df_test = data.split_df(
-        df, "Patient ID", split, total_filter=data_filter
-    )
+    df_train, df_val, df_test = data.split_df(df, "Patient ID", split, total_filter=data_filter)
     df_train = df_train.path.to_list()
     df_val = df_val.path.to_list()
     df_test = df_test.path.to_list()
@@ -113,7 +105,7 @@ if __name__ == "__main__":
     model.build_cnn(
         input_shape=img_size,
         output_shape=len(classes),
-        dense_layer_geometry= cnn_geometry,  # Hyperparam
+        dense_layer_geometry=cnn_geometry,  # Hyperparam
         dropout_layers=dropout_layer,  # Hyperparam
         dropout_rate=dropout_rate,  # Hyperparam
     )
@@ -152,3 +144,8 @@ if __name__ == "__main__":
     model.save_model()
 
     print("Saved model")
+
+
+if __name__ == "__main__":
+
+    run_multilabel()

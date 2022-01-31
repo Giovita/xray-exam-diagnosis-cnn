@@ -6,7 +6,7 @@ wheel>=0.29
 # data science
 numpy
 pandas
-# scikit-learn ?
+scikit-learn
 tensorflow
 pillow
 
@@ -33,3 +33,4 @@ memoized-property
 # streamlit
 streamlit
 opencv-python
+python-dotenv

@@ -1,42 +1,10 @@
-import numpy as np
-import pandas as pd
-import os
-from glob import glob
-
-import matplotlib.pyplot as plt
-from itertools import chain
-
-import tensorflow
-
-# import keras
 import tensorflow.keras
-import sklearn
-import sklearn as sk
-
-from sklearn.model_selection import train_test_split
-
-
-from sklearn.metrics import f1_score
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications.vgg16 import VGG16
-from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import (
-    GlobalAveragePooling2D,
-    Dense,
-    Dropout,
-    Flatten,
-    Conv2D,
-    MaxPooling2D,
-)
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.layers import Dense, Dropout, Flatten
+from tensorflow.keras.metrics import Accuracy, Precision, Recall
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import (
-    ModelCheckpoint,
-    LearningRateScheduler,
-    EarlyStopping,
-    ReduceLROnPlateau,
-)
-from tensorflow.keras.metrics import Precision, Recall, Accuracy
-
 
 # aca debe llamar otra funcion que genera el path para cada imagen
 
@@ -72,9 +40,7 @@ def build_model(
     loss : 'binary_crossentropy' or 'categorical_crossentropy'
     """
 
-    vgg_model = model_name(
-        include_top=False, weights="imagenet", input_shape=input_shape
-    )
+    vgg_model = model_name(include_top=False, weights="imagenet", input_shape=input_shape)
 
     vgg_model.trainable = False
 
@@ -82,47 +48,25 @@ def build_model(
     third_unit = second_unit / 2
 
     # CNN deep learning layers
-
     model = Sequential()
-
     model.add(vgg_model)
-
     model.add(Flatten())
-
     model.add(Dropout(dropout_rate))
-
     model.add(Dense(first_units, activation=layers_activation))
-
-    model.add(Dropout(dropout_rate))
-
     model.add(Dense(second_unit, activation=layers_activation))
-
     model.add(Dropout(dropout_rate))
-
     model.add(Dense(third_unit, activation=layers_activation))
-
     model.add(Dense(output_unit, activation=output_activation))
 
-    # Metricas y optimizador
+    #  Metrics and optimizer
     optimizer = Adam(learning_rate=learning_rate)
-
     loss = loss
-
     metrics = [Accuracy(), Precision(), Recall()]
-
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
-
-    early = EarlyStopping(
-        monitor="val_loss", mode="min", patience=patience, restore_best_weights=True
-    )
-
+    early = EarlyStopping(monitor="val_loss", mode="min", patience=patience, restore_best_weights=True)
     callbacks_list = [early]
-
     valX, valY = val_gen.next()
-
-    history = model.fit(
-        train_gen, validation_data=(valX, valY), epochs=epochs, callbacks=callbacks_list
-    )
+    history = model.fit(train_gen, validation_data=(valX, valY), epochs=epochs, callbacks=callbacks_list)
 
     return history
 
@@ -131,10 +75,9 @@ if __name__ == "__main__":
 
     ## Carpeta de los datos
     data_folder = "/content/drive/MyDrive/Proyecto_Lewagon_Rayos_X"
-    ## importar DF
     archivo = "/Data_Entry_2017.csv"
 
-    # columnas clases
+    # Classes (columns for OHE DF)
     cols = [
         "Atelectasis",
         "Cardiomegaly",
@@ -152,14 +95,3 @@ if __name__ == "__main__":
         "Pneumonia",
         "Pneumothorax",
     ]
-
-
-#### Legacy Code
-# xray_df = load_and_process(data_folder, archivo, cols)
-
-# #  Size
-# img_size = (128, 128)
-# input_shape = img_size + (3,)
-
-# #  epocas
-# epochs = 30

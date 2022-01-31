@@ -10,3 +10,4 @@ raw_data/
 
 models/
 
+.pytest_cache

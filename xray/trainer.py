@@ -1,63 +1,29 @@
 # from http.client import parse_headers
 import os
 from datetime import datetime
-
-from tensorflow.keras import applications
-
-# {
-#     "VGG16": applications.VGG16,
-#     "DenseNet121": applications.DenseNet121,
-#     "ResNet50": applications.ResNet50,
-#     "Xception": applications.Xception,
-#     "InceptionV3": applications.InceptionV3,
-# }
-
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import (
-    Dense,
-    Dropout,
-    Flatten,
-)
-from tensorflow.keras.layers.experimental.preprocessing import Rescaling
-# import tensorflow.keras.preprocessing.image as img
-# # from tensorflow.keras.experimental
-# import tensorflow.keras.layers.Rescaling as Rescaling
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import (
-    ModelCheckpoint,
-    EarlyStopping,
-    ReduceLROnPlateau,
-)
-from tensorflow.keras.metrics import (
-    Precision,
-    Recall,
-    CategoricalAccuracy,
-    AUC,
-)
-
-# import PIL.Image
-# from tensorflow import image
+from pathlib import Path
 
 import mlflow
-from mlflow.tracking import MlflowClient
+from google.cloud import storage
 from memoized_property import memoized_property
+from mlflow.tracking import MlflowClient
+from tensorflow.keras import applications
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from tensorflow.keras.layers import Dense, Dropout, Flatten
+from tensorflow.keras.layers.experimental.preprocessing import Rescaling
+from tensorflow.keras.metrics import AUC, CategoricalAccuracy, Precision, Recall
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.optimizers import Adam
 
 from xray.params import (
-    GCP_MODEL_STORAGE_LOCATION,
-    BUCKET_NAME,
-    MLFLOW_URI,
-    EXPERIMENT_NAME,
     BASE_MODEL_FOLDER,
-    PATH_TO_LOCAL_MODEL,
+    BUCKET_NAME,
     CHECKPOINT_FOLDER,
+    EXPERIMENT_NAME,
+    GCP_MODEL_STORAGE_LOCATION,
+    MLFLOW_URI,
+    PATH_TO_LOCAL_MODEL,
 )
-
-# GCP_IMAGE_BUCKET,
-# MODEL_VERSION,
-
-from google.cloud import storage
-
-from pathlib import Path
 
 
 class Trainer:
@@ -101,9 +67,7 @@ class Trainer:
 
         # Data loading and saving attrs
         self.filename = None  # Compile when save_model
-        self.model_dir = os.path.join(
-            BASE_MODEL_FOLDER, self.category_type
-        )  # Relative route from root to model
+        self.model_dir = os.path.join(BASE_MODEL_FOLDER, self.category_type)  # Relative route from root to model
         self.checkpoint_path = None
         self.experiment_name = EXPERIMENT_NAME  # For MlFlow logging
         self.save_local_dir = os.path.join(self.model_dir)
@@ -113,9 +77,9 @@ class Trainer:
 
     def build_cnn(
         self,  # Provides train and val generators
-        input_shape,
+        input_shape: tuple,
         dense_layer_geometry: tuple,
-        output_shape=None,
+        output_shape: int = None,
         output_activation=None,
         transfer_model=applications.VGG16,
         dense_layer_activation="relu",
@@ -147,13 +111,14 @@ class Trainer:
             self.input_shape = input_shape
 
         base_model = applications.VGG16(
-        # base_model = applications.mobilenet.MobileNet(
-            include_top=False, weights='imagenet', input_shape=self.input_shape
+            # base_model = applications.mobilenet.MobileNet(
+            include_top=False,
+            weights="imagenet",
+            input_shape=self.input_shape,
         )
         base_model.trainable = False
 
         self.base_arch = base_model.name
-
 
         # Build final layers
         model = Sequential()
@@ -235,9 +200,7 @@ class Trainer:
         #                                 {f'{datetime.now()}'.replace(' ', '_')}"
         # )
 
-        self.filename = os.path.join(
-            self.base_arch, str(datetime.now()).replace(" ", "_")
-        )
+        self.filename = os.path.join(self.base_arch, str(datetime.now()).replace(" ", "_"))
 
         self.mlflow_log_param("filename", self.filename)
 
@@ -271,9 +234,7 @@ class Trainer:
         **kwargs,
     ):
 
-        es = EarlyStopping(
-            monitor="val_recall", mode="min", patience=patience, restore_best_weights=True
-        )
+        es = EarlyStopping(monitor="val_recall", mode="min", patience=patience, restore_best_weights=True)
 
         # if not self.checkpoint_path:
         #     self.checkpoint_path = (
@@ -321,9 +282,7 @@ class Trainer:
         return history
 
     def evaluate_model(self, gen_test, steps=None, return_dict=True, **kwargs):
-        metrics = self.pipeline.evaluate(
-            gen_test, steps=steps, return_dict=return_dict, **kwargs
-        )
+        metrics = self.pipeline.evaluate(gen_test, steps=steps, return_dict=return_dict, **kwargs)
         """
         When providing an infinite dataset, you must specify the number of steps
         to run (if you did not intend to create an infinite dataset, make sure to
@@ -373,9 +332,7 @@ class Trainer:
 
         # self.model_dir = os.path.join(os.path.join(os.getcwd(), model_folder))
         # self.filename = f"{self.experiment_name}.h5"
-        self.pipeline.save(
-            os.path.join(self.model_dir, f"{self.filename}.h5"), save_format="h5"
-        )
+        self.pipeline.save(os.path.join(self.model_dir, f"{self.filename}.h5"), save_format="h5")
 
     def upload_model_to_gcp(self, rm=True):
         """Upload current model to gcp location"""
@@ -459,9 +416,7 @@ class Trainer:
         try:
             return self.mlflow_client.create_experiment(self.experiment_name)
         except BaseException:
-            return self.mlflow_client.get_experiment_by_name(
-                self.experiment_name
-            ).experiment_id
+            return self.mlflow_client.get_experiment_by_name(self.experiment_name).experiment_id
 
     @memoized_property
     def mlflow_run(self):
@@ -481,8 +436,9 @@ if __name__ == "__main__":
 
     import numpy as np
     import pandas as pd
-    from xray import data, params, trainer, utils
     from sklearn.preprocessing import MultiLabelBinarizer
+
+    from xray import data, params, trainer, utils
 
     # Some Parameters
     filename = "xray_df.csv"
@@ -510,16 +466,10 @@ if __name__ == "__main__":
 
     print(f"Total {len(df)} files loaded")
 
-    # Small data ELT
-    df["path"] = df.path.map(
-        lambda x: "/".join(x.split("/")[-3:])
-    )  # Relative paths to file loc
-    df.path = df.path.map(
-        lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x)
-    )  # Absolute path in GCP
-    df["labels"] = df["Fixed_Labels"].map(
-        lambda x: x.split("|")
-    )  # 'cat_col' not working
+    # Small data ETL
+    df["path"] = df.path.map(lambda x: "/".join(x.split("/")[-3:]))  # Relative paths to file loc
+    df.path = df.path.map(lambda x: os.path.join(params.GCP_IMAGE_BUCKET, x))  # Absolute path in GCP
+    df["labels"] = df["Fixed_Labels"].map(lambda x: x.split("|"))  # 'cat_col' not working
 
     # OneHot Encode multilabel
     mlb = MultiLabelBinarizer().fit(df.labels)
@@ -529,9 +479,7 @@ if __name__ == "__main__":
     print("Finished preprocessing")
 
     # Train, val, test split
-    df_train, df_val, df_test = data.split_df(
-        df, "Patient ID", split, total_filter=data_filter
-    )
+    df_train, df_val, df_test = data.split_df(df, "Patient ID", split, total_filter=data_filter)
     df_train = df_train.path.to_list()
     df_val = df_val.path.to_list()
     df_test = df_test.path.to_list()
