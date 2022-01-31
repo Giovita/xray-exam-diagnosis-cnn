@@ -36,3 +36,4 @@ memoized-property
 streamlit
 opencv-python
 python-dotenv
+python-multipart

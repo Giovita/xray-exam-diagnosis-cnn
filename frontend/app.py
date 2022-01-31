@@ -41,7 +41,7 @@ if file:
 
         # return the image with shaping that TF wants.
 
-        url = "http://localhost:8000/api/v1/make-prediction"
+        url = "http://localhost:8080/api/v1/make-prediction"
 
         r = requests.post(url, files={"file": file})
         result = r.json()
